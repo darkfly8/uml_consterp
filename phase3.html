@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ConstMaster Phase 3 — Field Execution Management</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          display: ['Space Grotesk', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          ink: { 50:'#f8fafc', 100:'#f1f5f9', 200:'#e2e8f0', 300:'#cbd5e1', 400:'#94a3b8', 500:'#64748b', 600:'#475569', 700:'#334155', 800:'#1e293b', 900:'#0f172a', 950:'#020617' },
+          brand: { 50:'#eef4ff', 100:'#d9e6ff', 200:'#bcd3ff', 300:'#8fb6ff', 400:'#5b8eff', 500:'#3b69f5', 600:'#2749d4', 700:'#1f3aae', 800:'#1f348a', 900:'#1f3070', 950:'#161f44' },
+          amber: { 500:'#f59e0b', 600:'#d97706' },
+          emerald: { 500:'#10b981', 600:'#059669' }
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --surface: #ffffff;
+    --border: #e6e9f0;
+    --ink-1: #0f172a;
+    --ink-2: #475569;
+    --ink-3: #94a3b8;
+    --brand: #1f3aae;
+    --amber: #d97706;
+  }
+  html, body { background: var(--bg); color: var(--ink-1); font-family: 'Inter', sans-serif; }
+  * { -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .sidebar-link { transition: all .15s ease; }
+  .sidebar-link:hover { background: rgba(255,255,255,.06); }
+  .sidebar-link.active { background: rgba(16,185,129,.15); color: #34d399; box-shadow: inset 2px 0 0 #10b981; }
+  .sidebar-link.active .icon-wrap { color: #34d399; }
+
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 14px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.02em; }
+
+  .badge-draft   { background:#fef3c7; color:#92400e; }
+  .badge-pending { background:#dbeafe; color:#1e40af; }
+  .badge-approved{ background:#dcfce7; color:#166534; }
+  .badge-rejected{ background:#fee2e2; color:#991b1b; }
+  .badge-obsolete{ background:#f1f5f9; color:#475569; }
+
+  .cat-exec  { background:#dcfce7; color:#166534; }
+  .cat-boq   { background:#ede9fe; color:#5b21b6; }
+  .cat-res   { background:#ffedd5; color:#9a3412; }
+  .cat-safe  { background:#fee2e2; color:#991b1b; }
+  .cat-qc    { background:#cffafe; color:#155e75; }
+  .cat-std   { background:#e2e8f0; color:#334155; }
+
+  table.data-table { border-collapse: collapse; width:100%; font-size:13px; }
+  table.data-table th { text-align:left; padding:10px 12px; background:#f8fafc; color:#475569; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid var(--border); position:sticky; top:0; }
+  table.data-table td { padding:10px 12px; border-bottom:1px solid #f1f5f9; color:#1e293b; }
+  table.data-table tr:hover td { background:#f8fafc; }
+
+  .field-label { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; font-weight:600; margin-bottom:4px; display:block; }
+  .input-field { width:100%; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:8px 10px; font-size:13px; color:#0f172a; outline:none; transition: border .15s; }
+  .input-field:focus { border-color:#059669; box-shadow: 0 0 0 3px rgba(5,150,105,.1); }
+
+  .tab-btn { padding:8px 14px; font-size:13px; font-weight:500; color:#475569; border-bottom:2px solid transparent; cursor:pointer; }
+  .tab-btn.active { color:#059669; border-bottom-color:#059669; }
+
+  .modal-backdrop { background:rgba(15,23,42,.55); backdrop-filter:blur(4px); }
+  .pulse-dot { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 0 rgba(34,197,94,.5); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)} 70%{box-shadow:0 0 0 10px rgba(34,197,94,0)} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(148,163,184,.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .gradient-text { background:linear-gradient(135deg,#059669,#10b981); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside class="w-64 bg-ink-900 text-ink-100 flex-shrink-0 flex flex-col fixed lg:relative h-screen z-30 print:hidden" id="sidebar">
+    <div class="px-5 py-4 flex items-center gap-3 border-b border-ink-800">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg">
+        <i data-lucide="hard-hat" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="font-display font-bold text-white text-lg leading-tight">FieldExec</div>
+        <div class="text-[10px] text-ink-400 tracking-widest uppercase">Phase 3 · Site Control</div>
+      </div>
+    </div>
+
+    <!-- Project Selector -->
+    <div class="px-4 py-3 border-b border-ink-800">
+      <div class="text-[10px] text-ink-500 uppercase tracking-widest font-semibold mb-1">Active Project</div>
+      <div class="bg-ink-800 rounded-lg p-2 flex items-center gap-2">
+        <i data-lucide="building" class="w-4 h-4 text-emerald-500"></i>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs font-medium text-white truncate">Fish Landing Centre</div>
+          <div class="text-[10px] text-ink-400 truncate">PRJ-FLC-2024</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 text-sm" id="nav">
+      <div class="px-3 pt-2 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Execution Overview</div>
+      <a data-view="dashboard" class="sidebar-link active flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="layout-dashboard" class="w-4 h-4"></i></span> Site Dashboard
+      </a>
+      <a data-view="planning" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="calendar-clock" class="w-4 h-4"></i></span> Work Planning
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Daily Site Operations</div>
+      <a data-view="daily_work" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="clipboard-list" class="w-4 h-4"></i></span> Daily Work & Progress
+      </a>
+      <a data-view="requisitions" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="package-check" class="w-4 h-4"></i></span> Resource Requisitions
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Safety & Quality</div>
+      <a data-view="safety" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="shield-alert" class="w-4 h-4"></i></span> Safety & Permits
+      </a>
+      <a data-view="quality" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="badge-check" class="w-4 h-4"></i></span> QC & Inspections
+      </a>
+      <a data-view="ncr" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="file-warning" class="w-4 h-4"></i></span> NCR & Defects
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Integration</div>
+      <a data-view="integration" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="link" class="w-4 h-4"></i></span> BOQ & Master Data
+      </a>
+    </nav>
+
+    <div class="border-t border-ink-800 p-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center font-semibold text-white text-sm">AT</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-white truncate">A. Tharindu</div>
+          <div class="text-[10px] text-ink-400 flex items-center gap-1"><span class="pulse-dot"></span> Site Engineer</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 lg:ml-0 min-w-0 flex flex-col">
+    <header class="bg-white border-b border-ink-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
+      <div class="flex items-center gap-3">
+        <button class="lg:hidden text-ink-600" id="menuBtn"><i data-lucide="menu" class="w-5 h-5"></i></button>
+        <div>
+          <h1 id="pageTitle" class="font-display text-lg font-semibold text-ink-900">Site Dashboard</h1>
+          <p id="pageSubtitle" class="text-xs text-ink-500">Fish Landing Centre · Traders Building</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-ink-50 rounded-lg text-xs text-ink-600 font-mono">
+          <i data-lucide="cloud-sun" class="w-3.5 h-3.5"></i> 32°C · Clear
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-1.5"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Log Daily Work</button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-6 overflow-x-hidden" id="app"></main>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col" id="modalContent"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden bg-ink-900 text-white px-4 py-3 rounded-lg shadow-xl text-sm flex items-center gap-2">
+  <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+  <span id="toastMsg">Done</span>
+</div>
+
+<script>
+/* =========================================================================
+   CONSTMASTER PHASE 3 — FIELD EXECUTION MANAGEMENT
+   ========================================================================= */
+
+/* ----------------------- MOCK INTEGRATED DATA (FROM PHASE 1 & 2) ----------------------- */
+const P2_BOQ = [
+  { id:'boq1', code:'03.01', desc:'Bored Cast-in-situ Pile (500mm dia)', unit:'m³', approvedQty:8.051, drawing:'STR-FND-001', bimElem:'BIM-FND-001' },
+  { id:'boq2', code:'03.02', desc:'Pile Cap Concrete (Grade 30)', unit:'m³', approvedQty:7.500, drawing:'STR-FND-002', bimElem:'BIM-FND-002' },
+  { id:'boq3', code:'04.01', desc:'RC Column Concrete (Grade 30)', unit:'m³', approvedQty:0.840, drawing:'STR-SUP-001', bimElem:'BIM-STR-001' },
+];
+
+const P1_ACTIVITIES = [
+  { id:'act1', code:'ACT-PIL-001', name:'Bored Pile Installation', bimElem:'BIM-FND-001' },
+  { id:'act2', code:'ACT-CON-001', name:'Pile Cap Concrete Pour', bimElem:'BIM-FND-002' },
+];
+
+const P1_RESOURCES = [
+  { id:'res1', code:'MAT-CMT-001', name:'OPC Cement 53 Grade', type:'Material', unit:'bag' },
+  { id:'res2', code:'MAT-AGG-002', name:'Coarse Aggregate 20mm', type:'Material', unit:'m³' },
+  { id:'res3', code:'MP-REB-001', name:'Bar Bender', type:'Manpower', unit:'day' },
+  { id:'res4', code:'EQP-EXC-001', name:'Hydraulic Excavator 20T', type:'Equipment', unit:'hr' },
+];
+
+/* ----------------------- MOCK PHASE 3 EXECUTION DATA ----------------------- */
+const WORK_PLANS = [
+  { id:'wp1', activityRef:'act1', boqRef:'boq1', target:2.651, unit:'m³', startDate:'2024-01-20', endDate:'2024-01-22', status:'In Progress' },
+  { id:'wp2', activityRef:'act2', boqRef:'boq2', target:3.750, unit:'m³', startDate:'2024-01-25', endDate:'2024-01-26', status:'Not Started' },
+];
+
+const DAILY_LOGS = [
+  { id:'dl1', date:'2024-01-20', workPlan:'wp1', shift:'Day', planned:1.325, executed:1.200, status:'Submitted' },
+  { id:'dl2', date:'2024-01-21', workPlan:'wp1', shift:'Day', planned:1.325, executed:1.451, status:'Approved' },
+];
+
+const RESOURCE_REQS = [
+  { id:'req1', date:'2024-01-20', resRef:'res1', qty:15, unit:'bag', status:'Issued' },
+  { id:'req2', date:'2024-01-20', resRef:'res4', qty:4, unit:'hr', status:'Approved' },
+  { id:'req3', date:'2024-01-21', resRef:'res2', qty:2, unit:'m³', status:'Pending' },
+];
+
+const SAFETY_RECORDS = [
+  { id:'s1', type:'Permit', title:'Hot Work Permit - Rebar Cutting', status:'Active', exp:'2024-01-21 18:00' },
+  { id:'s2', type:'Inspection', title:'Excavation Shoring Check', status:'Passed', exp:'2024-01-20' },
+  { id:'s3', type:'Incident', title:'Minor - Worker slipped near bore', status:'Open', exp:'—' },
+];
+
+const QC_REQUESTS = [
+  { id:'qc1', type:'RFI', title:'Reinforcement Check for P1-X1Y1', status:'Pending', date:'2024-01-21' },
+  { id:'qc2', type:'Cube Test', title:'Concrete Sample - Pile Cap', status:'Passed', date:'2024-01-25' },
+];
+
+const NCRS = [
+  { id:'ncr1', title:'Pile P3 offset by 50mm from grid', status:'Open', date:'2024-01-22' },
+  { id:'ncr2', title:'Honeycombing observed in Pile Cap PC1', status:'Corrected', date:'2024-01-24' },
+];
+
+/* ----------------------- STATE & ROUTER ----------------------- */
+const state = {
+  currentView: 'dashboard',
+  selectedWorkPlan: 'wp1'
+};
+
+const VIEWS = {
+  dashboard:    { title:'Site Dashboard',           sub:'Real-time execution progress and site status' },
+  planning:     { title:'Work Planning',            sub:'Linking approved BOQ to site activities' },
+  daily_work:   { title:'Daily Work & Progress',    sub:'Log actual execution against planned targets' },
+  requisitions: { title:'Resource Requisitions',    sub:'Material, manpower and equipment requests' },
+  safety:       { title:'Safety & Permits',         sub:'Site safety inspections and work permits' },
+  quality:      { title:'QC & Inspections',         sub:'RFIs, ITPs and material testing' },
+  ncr:          { title:'NCR & Defects',             sub:'Non-Conformance Reports register' },
+  integration:  { title:'BOQ & Master Data',        sub:'Integration with Phase 1 & Phase 2 systems' },
+};
+
+/* ----------------------- HELPERS ----------------------- */
+function el(id) { return document.getElementById(id); }
+function $(sel, ctx=document) { return ctx.querySelector(sel); }
+function $$(sel, ctx=document) { return [...ctx.querySelectorAll(sel)]; }
+
+function statusBadge(status) {
+  const map = { 'Draft':'badge-draft','Pending':'badge-pending','Submitted':'badge-pending','Approved':'badge-approved','Rejected':'badge-rejected','Open':'badge-rejected','Active':'badge-approved','Passed':'badge-approved','Corrected':'badge-approved','In Progress':'badge-pending','Not Started':'badge-draft','Issued':'badge-approved' };
+  return `<span class="chip ${map[status] || 'badge-draft'}">${status}</span>`;
+}
+
+function toast(msg) {
+  el('toastMsg').textContent = msg;
+  el('toast').classList.remove('hidden');
+  setTimeout(()=>el('toast').classList.add('hidden'), 2200);
+}
+
+function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+
+/* ----------------------- VIEW: DASHBOARD ----------------------- */
+function viewDashboard() {
+  const totalApproved = DAILY_LOGS.filter(d=>d.status==='Approved').reduce((s,d)=>s+d.executed,0);
+  const totalPlanned = WORK_PLANS.reduce((s,w)=>s+w.target,0);
+  const progress = (totalApproved / totalPlanned * 100).toFixed(0);
+
+  return `
+    <div class="space-y-6">
+      <!-- Hero -->
+      <div class="card overflow-hidden relative">
+        <div class="absolute inset-0 grid-bg opacity-50"></div>
+        <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-emerald-50 to-transparent"></div>
+        <div class="relative p-6 flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="chip cat-exec">Phase 3</span>
+              <span class="chip cat-boq">BOQ Linked</span>
+              <span class="chip badge-approved">On Schedule</span>
+            </div>
+            <h2 class="font-display text-2xl font-bold text-ink-900">Field Execution Control</h2>
+            <p class="text-sm text-ink-600 mt-1 max-w-2xl">Executing work packages against approved Phase 2 BOQ. All executed quantities are mapped directly to BIM elements and drawing revisions.</p>
+          </div>
+          <div class="flex gap-6 items-center">
+            <div class="text-center">
+              <div class="text-3xl font-bold gradient-text">${progress}%</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Overall Progress</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-amber-600">${DAILY_LOGS.length}</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Daily Logs</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-red-600">${SAFETY_RECORDS.filter(s=>s.status==='Open' || s.status==='Active').length}</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Active Permits/Open Items</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Execution Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="card p-4">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center"><i data-lucide="trending-up" class="w-5 h-5 text-emerald-600"></i></div>
+            <div class="text-xs text-ink-500 uppercase tracking-wider">Approved Execution</div>
+          </div>
+          <div class="font-display text-2xl font-bold text-ink-900">${totalApproved.toFixed(3)} <span class="text-sm font-normal text-ink-500">m³</span></div>
+          <div class="text-xs text-ink-500 mt-1">vs ${totalPlanned.toFixed(3)} m³ planned</div>
+        </div>
+        <div class="card p-4">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center"><i data-lucide="clipboard-list" class="w-5 h-5 text-amber-600"></i></div>
+            <div class="text-xs text-ink-500 uppercase tracking-wider">Pending Approvals</div>
+          </div>
+          <div class="font-display text-2xl font-bold text-ink-900">${DAILY_LOGS.filter(d=>d.status==='Submitted').length}</div>
+          <div class="text-xs text-ink-500 mt-1">Daily progress entries</div>
+        </div>
+        <div class="card p-4">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center"><i data-lucide="package-check" class="w-5 h-5 text-blue-600"></i></div>
+            <div class="text-xs text-ink-500 uppercase tracking-wider">Pending Requisitions</div>
+          </div>
+          <div class="font-display text-2xl font-bold text-ink-900">${RESOURCE_REQS.filter(r=>r.status==='Pending').length}</div>
+          <div class="text-xs text-ink-500 mt-1">Awaiting store issuance</div>
+        </div>
+        <div class="card p-4">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center"><i data-lucide="file-warning" class="w-5 h-5 text-red-600"></i></div>
+            <div class="text-xs text-ink-500 uppercase tracking-wider">Open NCRs</div>
+          </div>
+          <div class="font-display text-2xl font-bold text-ink-900">${NCRS.filter(n=>n.status==='Open').length}</div>
+          <div class="text-xs text-ink-500 mt-1">Requires corrective action</div>
+        </div>
+      </div>
+
+      <!-- BOQ Execution Summary -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-ink-800">BOQ Execution Summary</h3>
+          <button onclick="navigateTo('daily_work')" class="text-xs text-emerald-600 hover:underline flex items-center gap-1">Log Progress <i data-lucide="arrow-right" class="w-3 h-3"></i></button>
+        </div>
+        <div class="space-y-4">
+          ${P2_BOQ.map(b => {
+            const executed = DAILY_LOGS.filter(d => WORK_PLANS.find(w=>w.id===d.workPlan)?.boqRef===b.id && d.status==='Approved').reduce((s,d)=>s+d.executed,0);
+            const progress = (executed / b.approvedQty * 100).toFixed(0);
+            return `
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-ink-800 font-medium">${b.code} · ${b.desc}</span>
+                  <span class="text-ink-600 font-mono">${executed.toFixed(3)} / ${b.approvedQty.toFixed(3)} ${b.unit} (${progress}%)</span>
+                </div>
+                <div class="w-full h-2.5 bg-ink-100 rounded-full overflow-hidden">
+                  <div class="bg-emerald-500 h-full rounded-full" style="width:${progress}%"></div>
+                </div>
+                <div class="text-[10px] text-ink-500 mt-1 font-mono">Source: Drawing ${b.drawing} · BIM ${b.bimElem}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: WORK PLANNING ----------------------- */
+function viewPlanning() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-ink-800">Site Work Plans</h3>
+          <p class="text-xs text-ink-500">Activities mapped to Phase 2 BOQ and Phase 1 BIM elements</p>
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-1.5" onclick="toast('New work plan created')"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Create Work Plan</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr><th>Plan ID</th><th>Activity (P1)</th><th>BOQ Item (P2)</th><th>Target Qty</th><th>Schedule</th><th>Status</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            ${WORK_PLANS.map(w => {
+              const act = P1_ACTIVITIES.find(a=>a.id===w.activityRef);
+              const boq = P2_BOQ.find(b=>b.id===w.boqRef);
+              return `
+                <tr>
+                  <td class="font-mono text-xs text-emerald-700">${w.id.toUpperCase()}</td>
+                  <td class="font-medium text-ink-800">${act?.name || '—'}</td>
+                  <td class="text-xs text-ink-600">${boq?.code} · ${boq?.desc}</td>
+                  <td class="font-mono font-semibold">${w.target} ${w.unit}</td>
+                  <td class="text-xs font-mono text-ink-500">${w.startDate} → ${w.endDate}</td>
+                  <td>${statusBadge(w.status)}</td>
+                  <td><button class="text-xs text-emerald-600 hover:underline" onclick="continueWork('${w.id}')">Start Daily Log</button></td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: DAILY WORK ----------------------- */
+function viewDailyWork() {
+  const wp = WORK_PLANS.find(w=>w.id===state.selectedWorkPlan) || WORK_PLANS[0];
+  const boq = P2_BOQ.find(b=>b.id===wp.boqRef);
+  const executed = DAILY_LOGS.filter(d=>d.workPlan===wp.id && d.status==='Approved').reduce((s,d)=>s+d.executed,0);
+  const remaining = boq.approvedQty - executed;
+
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Daily Entry Form -->
+      <div class="lg:col-span-2 card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-ink-800">Daily Progress Entry</h3>
+          <button class="text-xs text-emerald-600 flex items-center gap-1 font-medium" onclick="toast('Previous day setup copied')"><i data-lucide="copy" class="w-3 h-3"></i> Continue Previous Work</button>
+        </div>
+        
+        <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-4 text-sm text-emerald-800">
+          <div class="flex justify-between">
+            <span><strong>Activity:</strong> ${P1_ACTIVITIES.find(a=>a.id===wp.activityRef)?.name}</span>
+            <span><strong>Date:</strong> 2024-01-22</span>
+          </div>
+          <div class="text-xs text-emerald-700 mt-1 font-mono">Drawing Ref: ${boq.drawing} · BIM: ${boq.bimElem}</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="field-label">BOQ Approved Quantity</label>
+            <input type="text" class="input-field bg-ink-50" value="${boq.approvedQty} ${boq.unit}" readonly />
+          </div>
+          <div>
+            <label class="field-label">Cumulative Approved Execution</label>
+            <input type="text" class="input-field bg-ink-50" value="${executed.toFixed(3)} ${boq.unit}" readonly />
+          </div>
+          <div>
+            <label class="field-label">Remaining Balance</label>
+            <input type="text" class="input-field bg-amber-50 text-amber-700 font-semibold" value="${remaining.toFixed(3)} ${boq.unit}" readonly />
+          </div>
+          <div>
+            <label class="field-label">Executed Today (Planned)</label>
+            <input type="number" class="input-field" value="1.325" />
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="field-label">Actual Executed Quantity</label>
+          <input type="number" class="input-field border-emerald-300 focus:border-emerald-500" value="1.300" />
+          <div class="text-[10px] text-ink-500 mt-1">Note: System will prevent cumulative approved quantities from exceeding BOQ limits without authorized variation.</div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4 mb-4">
+          <div><label class="field-label">Shift</label><select class="input-field"><option>Day</option><option>Night</option></select></div>
+          <div><label class="field-label">Work Start</label><input type="time" class="input-field" value="08:00" /></div>
+          <div><label class="field-label">Work Finish</label><input type="time" class="input-field" value="17:00" /></div>
+        </div>
+
+        <div class="mb-4">
+          <label class="field-label">Site Remarks / Instructions</label>
+          <textarea class="input-field" rows="2">Concrete pour delayed 1hr due to batching plant maintenance. All samples taken.</textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="field-label">Field Evidence (Photos)</label>
+          <div class="border-2 border-dashed border-ink-200 rounded-lg p-4 text-center text-ink-500 text-xs cursor-pointer hover:border-emerald-400 hover:text-emerald-600">
+            <i data-lucide="camera" class="w-6 h-6 mx-auto mb-1"></i>
+            Click to upload or capture from mobile
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <button class="px-4 py-2 text-sm border border-ink-200 rounded-lg text-ink-700 hover:bg-ink-50">Save Draft</button>
+          <button class="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-1.5" onclick="toast('Progress submitted for verification')"><i data-lucide="send" class="w-4 h-4"></i> Submit for Verification</button>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="card p-5">
+        <h3 class="font-semibold text-ink-800 mb-4">Recent Daily Logs</h3>
+        <div class="space-y-3">
+          ${DAILY_LOGS.map(d => {
+            const w = WORK_PLANS.find(w=>w.id===d.workPlan);
+            return `
+              <div class="border border-ink-200 rounded-lg p-3">
+                <div class="flex justify-between items-start mb-1">
+                  <div class="font-mono text-xs text-ink-500">${d.date} · ${d.shift}</div>
+                  ${statusBadge(d.status)}
+                </div>
+                <div class="text-sm text-ink-800 font-medium mt-1">${P1_ACTIVITIES.find(a=>a.id===w.activityRef)?.name}</div>
+                <div class="flex justify-between mt-2 text-xs">
+                  <span class="text-ink-500">Planned: <span class="font-mono">${d.planned}</span></span>
+                  <span class="text-ink-800 font-semibold">Actual: <span class="font-mono">${d.executed}</span></span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+window.continueWork = function(id) {
+  state.selectedWorkPlan = id;
+  navigateTo('daily_work');
+}
+
+/* ----------------------- VIEW: REQUISITIONS ----------------------- */
+function viewRequisitions() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-ink-800">Resource Requisitions</h3>
+          <p class="text-xs text-ink-500">Material, Manpower and Equipment requests based on P1 norms</p>
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-1.5" onclick="toast('New requisition created')"><i data-lucide="plus" class="w-3.5 h-3.5"></i> New Requisition</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr><th>Date</th><th>Resource (P1)</th><th>Type</th><th>Qty</th><th>Status</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            ${RESOURCE_REQS.map(r => {
+              const res = P1_RESOURCES.find(p=>p.id===r.resRef);
+              return `
+                <tr>
+                  <td class="text-xs font-mono">${r.date}</td>
+                  <td class="font-medium text-ink-800">${res?.name}</td>
+                  <td><span class="chip cat-res">${res?.type}</span></td>
+                  <td class="font-mono">${r.qty} ${r.unit}</td>
+                  <td>${statusBadge(r.status)}</td>
+                  <td>
+                    ${r.status === 'Pending' ? `<button class="text-xs text-emerald-600 hover:underline" onclick="toast('Issued by store')">Mark Issued</button>` : '<span class="text-ink-400 text-xs">—</span>'}
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: SAFETY ----------------------- */
+function viewSafety() {
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card overflow-hidden">
+        <div class="px-4 py-3 border-b border-ink-200"><h3 class="font-semibold text-ink-800">Active Permits</h3></div>
+        <div class="p-4 space-y-3">
+          ${SAFETY_RECORDS.filter(s=>s.type==='Permit').map(s => `
+            <div class="border border-amber-200 bg-amber-50 rounded-lg p-3">
+              <div class="flex justify-between items-start">
+                <div class="font-medium text-amber-900 text-sm">${s.title}</div>
+                ${statusBadge(s.status)}
+              </div>
+              <div class="text-xs text-amber-700 mt-1 font-mono">Valid until: ${s.exp}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="card overflow-hidden">
+        <div class="px-4 py-3 border-b border-ink-200"><h3 class="font-semibold text-ink-800">Inspections & Incidents</h3></div>
+        <div class="p-4 space-y-3">
+          ${SAFETY_RECORDS.filter(s=>s.type!=='Permit').map(s => `
+            <div class="border border-ink-200 rounded-lg p-3">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="text-xs text-ink-500">${s.type}</div>
+                  <div class="font-medium text-ink-800 text-sm">${s.title}</div>
+                </div>
+                ${statusBadge(s.status)}
+              </div>
+              <div class="text-xs text-ink-500 mt-1 font-mono">${s.exp !== '—' ? 'Date: '+s.exp : 'Requires investigation'}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: QUALITY ----------------------- */
+function viewQuality() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <h3 class="font-semibold text-ink-800">Quality Control Requests (RFI & Tests)</h3>
+        <button class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center gap-1.5" onclick="toast('RFI submitted to QC')"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Request Inspection</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Status</th></tr></thead>
+          <tbody>
+            ${QC_REQUESTS.map(q => `
+              <tr>
+                <td class="text-xs font-mono">${q.date}</td>
+                <td><span class="chip cat-qc">${q.type}</span></td>
+                <td class="font-medium text-ink-800">${q.title}</td>
+                <td>${statusBadge(q.status)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: NCR ----------------------- */
+function viewNCR() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <h3 class="font-semibold text-ink-800">Non-Conformance Register</h3>
+        <button class="px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-1.5" onclick="toast('NCR logged')"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Log NCR</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Defect / Issue</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            ${NCRS.map(n => `
+              <tr>
+                <td class="text-xs font-mono">${n.date}</td>
+                <td class="font-medium text-ink-800">${n.title}</td>
+                <td>${statusBadge(n.status)}</td>
+                <td><button class="text-xs text-emerald-600 hover:underline" onclick="toast('Opened corrective action')">View Details</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: INTEGRATION ----------------------- */
+function viewIntegration() {
+  return `
+    <div class="card p-6">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center"><i data-lucide="link" class="w-5 h-5 text-emerald-700"></i></div>
+        <div>
+          <h3 class="font-semibold text-ink-800">Phase Integration Status</h3>
+          <p class="text-xs text-ink-500">Field Execution consuming approved data from upstream systems</p>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="border border-ink-200 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="pulse-dot"></span>
+            <span class="font-medium text-ink-800">Phase 2 - BOQ & Drawings</span>
+          </div>
+          <div class="text-xs text-ink-600 space-y-1 font-mono">
+            <div>✓ Retrieved ${P2_BOQ.length} approved BOQ items</div>
+            <div>✓ Linked ${P1_ACTIVITIES.length} activities to BIM elements</div>
+            <div>✓ Drawing revisions synced (STR-FND-001 Rev B)</div>
+          </div>
+        </div>
+
+        <div class="border border-ink-200 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="pulse-dot"></span>
+            <span class="font-medium text-ink-800">Phase 1 - Master Database</span>
+          </div>
+          <div class="text-xs text-ink-600 space-y-1 font-mono">
+            <div>✓ Retrieved ${P1_RESOURCES.length} resource norms</div>
+            <div>✓ Safety hazards mapped to activities</div>
+            <div>✓ ITP templates synced for QC module</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 bg-ink-50 rounded-lg p-4">
+        <h4 class="font-semibold text-ink-800 mb-2 text-sm">Approved BOQ Items Available for Execution</h4>
+        <div class="space-y-2">
+          ${P2_BOQ.map(b => `
+            <div class="bg-white p-2 rounded border border-ink-200 text-xs flex justify-between items-center">
+              <div>
+                <span class="font-mono text-ink-500">${b.code}</span>
+                <span class="text-ink-800 ml-2">${b.desc}</span>
+              </div>
+              <div class="font-mono text-emerald-700 font-semibold">${b.approvedQty} ${b.unit}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- NAVIGATION ----------------------- */
+window.navigateTo = function(view) {
+  state.currentView = view;
+  const v = VIEWS[view] || { title: view, sub: '' };
+  el('pageTitle').textContent = v.title;
+  el('pageSubtitle').textContent = v.sub;
+  $$('.sidebar-link').forEach(l => l.classList.toggle('active', l.dataset.view === view));
+  render();
+  refreshIcons();
+};
+
+/* ----------------------- RENDER ----------------------- */
+function render() {
+  const view = state.currentView;
+  const map = {
+    dashboard: viewDashboard,
+    planning: viewPlanning,
+    daily_work: viewDailyWork,
+    requisitions: viewRequisitions,
+    safety: viewSafety,
+    quality: viewQuality,
+    ncr: viewNCR,
+    integration: viewIntegration,
+  };
+  el('app').innerHTML = (map[view] || viewDashboard)();
+  refreshIcons();
+  el('app').scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ----------------------- INIT ----------------------- */
+function init() {
+  $$('.sidebar-link').forEach(link => {
+    link.addEventListener('click', e => { e.preventDefault(); navigateTo(link.dataset.view); });
+  });
+  navigateTo('dashboard');
+}
+
+init();
+</script>
+</body>
+</html>

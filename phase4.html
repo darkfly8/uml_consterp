@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ConstMaster Phase 4 — Commercial & Cost Control</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          display: ['Space Grotesk', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          ink: { 50:'#f8fafc', 100:'#f1f5f9', 200:'#e2e8f0', 300:'#cbd5e1', 400:'#94a3b8', 500:'#64748b', 600:'#475569', 700:'#334155', 800:'#1e293b', 900:'#0f172a', 950:'#020617' },
+          brand: { 50:'#eef4ff', 100:'#d9e6ff', 200:'#bcd3ff', 300:'#8fb6ff', 400:'#5b8eff', 500:'#3b69f5', 600:'#2749d4', 700:'#1f3aae', 800:'#1f348a', 900:'#1f3070', 950:'#161f44' },
+          violet: { 500:'#8b5cf6', 600:'#7c3aed', 700:'#6d28d9' },
+          amber: { 500:'#f59e0b', 600:'#d97706' },
+          emerald: { 500:'#10b981', 600:'#059669' }
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --surface: #ffffff;
+    --border: #e6e9f0;
+    --ink-1: #0f172a;
+    --ink-2: #475569;
+    --ink-3: #94a3b8;
+    --brand: #6d28d9; /* Violet for Commercial */
+    --amber: #d97706;
+  }
+  html, body { background: var(--bg); color: var(--ink-1); font-family: 'Inter', sans-serif; }
+  * { -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .sidebar-link { transition: all .15s ease; }
+  .sidebar-link:hover { background: rgba(255,255,255,.06); }
+  .sidebar-link.active { background: rgba(139,92,246,.15); color: #c4b5fd; box-shadow: inset 2px 0 0 #8b5cf6; }
+  .sidebar-link.active .icon-wrap { color: #c4b5fd; }
+
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 14px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.02em; }
+
+  .badge-draft   { background:#fef3c7; color:#92400e; }
+  .badge-pending { background:#dbeafe; color:#1e40af; }
+  .badge-approved{ background:#dcfce7; color:#166534; }
+  .badge-rejected{ background:#fee2e2; color:#991b1b; }
+  .badge-partial { background:#e0e7ff; color:#3730a3; }
+
+  .cat-comm  { background:#ede9fe; color:#5b21b6; }
+  .cat-fin   { background:#cffafe; color:#155e75; }
+  .cat-boq   { background:#ede9fe; color:#5b21b6; }
+  .cat-res   { background:#ffedd5; color:#9a3412; }
+  .cat-std   { background:#e2e8f0; color:#334155; }
+
+  table.data-table { border-collapse: collapse; width:100%; font-size:13px; }
+  table.data-table th { text-align:left; padding:10px 12px; background:#f8fafc; color:#475569; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid var(--border); position:sticky; top:0; }
+  table.data-table td { padding:10px 12px; border-bottom:1px solid #f1f5f9; color:#1e293b; }
+  table.data-table tr:hover td { background:#f8fafc; }
+
+  .field-label { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; font-weight:600; margin-bottom:4px; display:block; }
+  .input-field { width:100%; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:8px 10px; font-size:13px; color:#0f172a; outline:none; transition: border .15s; }
+  .input-field:focus { border-color:#7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.1); }
+
+  .tab-btn { padding:8px 14px; font-size:13px; font-weight:500; color:#475569; border-bottom:2px solid transparent; cursor:pointer; }
+  .tab-btn.active { color:#7c3aed; border-bottom-color:#7c3aed; }
+
+  .modal-backdrop { background:rgba(15,23,42,.55); backdrop-filter:blur(4px); }
+  .pulse-dot { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 0 rgba(34,197,94,.5); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)} 70%{box-shadow:0 0 0 10px rgba(34,197,94,0)} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(148,163,184,.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .gradient-text { background:linear-gradient(135deg,#7c3aed,#8b5cf6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside class="w-64 bg-ink-900 text-ink-100 flex-shrink-0 flex flex-col fixed lg:relative h-screen z-30 print:hidden" id="sidebar">
+    <div class="px-5 py-4 flex items-center gap-3 border-b border-ink-800">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-600 to-violet-700 flex items-center justify-center shadow-lg">
+        <i data-lucide="landmark" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="font-display font-bold text-white text-lg leading-tight">Commercial</div>
+        <div class="text-[10px] text-ink-400 tracking-widest uppercase">Phase 4 · Cost & Billing</div>
+      </div>
+    </div>
+
+    <div class="px-4 py-3 border-b border-ink-800">
+      <div class="text-[10px] text-ink-500 uppercase tracking-widest font-semibold mb-1">Active Project</div>
+      <div class="bg-ink-800 rounded-lg p-2 flex items-center gap-2">
+        <i data-lucide="building" class="w-4 h-4 text-violet-500"></i>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs font-medium text-white truncate">Fish Landing Centre</div>
+          <div class="text-[10px] text-ink-400 truncate">Contract Value: 4.85M BDT</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 text-sm" id="nav">
+      <div class="px-3 pt-2 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Financial Overview</div>
+      <a data-view="dashboard" class="sidebar-link active flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="layout-dashboard" class="w-4 h-4"></i></span> Commercial Dashboard
+      </a>
+      <a data-view="budget" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="wallet" class="w-4 h-4"></i></span> Project Budget
+      </a>
+      <a data-view="cost_control" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="trending-down" class="w-4 h-4"></i></span> Cost Control
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Procurement & Subcontract</div>
+      <a data-view="procurement" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="shopping-cart" class="w-4 h-4"></i></span> Procurement (POs)
+      </a>
+      <a data-view="subcontract" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="users" class="w-4 h-4"></i></span> Subcontractor Billing
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Revenue & Claims</div>
+      <a data-view="client_billing" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="file-text" class="w-4 h-4"></i></span> Client Billing (RA Bills)
+      </a>
+      <a data-view="variations" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="git-branch" class="w-4 h-4"></i></span> Variations & Claims
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Integration</div>
+      <a data-view="integration" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="link" class="w-4 h-4"></i></span> Phase 1/2/3 Data
+      </a>
+    </nav>
+
+    <div class="border-t border-ink-800 p-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center font-semibold text-white text-sm">NF</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-white truncate">N. Fernando</div>
+          <div class="text-[10px] text-ink-400 flex items-center gap-1"><span class="pulse-dot"></span> Commercial Manager</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 lg:ml-0 min-w-0 flex flex-col">
+    <header class="bg-white border-b border-ink-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
+      <div class="flex items-center gap-3">
+        <button class="lg:hidden text-ink-600" id="menuBtn"><i data-lucide="menu" class="w-5 h-5"></i></button>
+        <div>
+          <h1 id="pageTitle" class="font-display text-lg font-semibold text-ink-900">Commercial Dashboard</h1>
+          <p id="pageSubtitle" class="text-xs text-ink-500">Fish Landing Centre · Financial Year 2024</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-ink-50 rounded-lg text-xs text-ink-600 font-mono">
+          <i data-lucide="dollar-sign" class="w-3.5 h-3.5"></i> Reporting Currency: BDT
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-violet-600 text-white rounded-lg hover:bg-violet-700 flex items-center gap-1.5"><i data-lucide="plus" class="w-3.5 h-3.5"></i> New Invoice/Bill</button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-6 overflow-x-hidden" id="app"></main>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col" id="modalContent"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden bg-ink-900 text-white px-4 py-3 rounded-lg shadow-xl text-sm flex items-center gap-2">
+  <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+  <span id="toastMsg">Done</span>
+</div>
+
+<script>
+/* =========================================================================
+   CONSTMASTER PHASE 4 — COMMERCIAL MANAGEMENT & COST CONTROL
+   ========================================================================= */
+
+/* ----------------------- MOCK INTEGRATED DATA (FROM PHASE 1/2/3) ----------------------- */
+const P2_BOQ_COMM = [
+  { id:'b1', code:'03.01', desc:'Bored Cast-in-situ Pile', unit:'m³', approvedQty:8.051, contractRate:18500 },
+  { id:'b2', code:'03.02', desc:'Pile Cap Concrete', unit:'m³', approvedQty:7.500, contractRate:15500 },
+  { id:'b3', code:'04.01', desc:'RC Column Concrete', unit:'m³', approvedQty:0.840, contractRate:16000 },
+];
+
+const P3_EXEC_COMM = [
+  { boqId:'b1', executedQty:2.651 }, 
+  { boqId:'b2', executedQty:3.750 },
+];
+
+/* ----------------------- MOCK PHASE 4 COMMERCIAL DATA ----------------------- */
+const BUDGETS = [
+  { id:'bd1', code:'03.01', desc:'Bored Cast-in-situ Pile', tenderEst:17000, contractRate:18500, approvedBudget:16500, actualCost:18200, forecastCost:18000 },
+  { id:'bd2', code:'03.02', desc:'Pile Cap Concrete', tenderEst:14000, contractRate:15500, approvedBudget:14500, actualCost:13800, forecastCost:14000 },
+  { id:'bd3', code:'04.01', desc:'RC Column Concrete', tenderEst:15000, contractRate:16000, approvedBudget:15200, actualCost:0, forecastCost:15500 },
+];
+
+const PURCHASE_ORDERS = [
+  { id:'po1', code:'PO-2024-001', supplier:'Holcim Lanka', desc:'OPC Cement 53 Grade', ordered:200, unit:'bag', rate:1050, status:'Partially Delivered', delivered:150, invoiced:150 },
+  { id:'po2', code:'PO-2024-002', supplier:'Tokyo Cement', desc:'PPC Cement', ordered:100, unit:'bag', rate:980, status:'Pending', delivered:0, invoiced:0 },
+  { id:'po3', code:'PO-2024-003', supplier:'AAA Readymix', desc:'Ready Mix Concrete (Pile)', ordered:8.051, unit:'m³', rate:16500, status:'Approved', delivered:2.651, invoiced:2.651 },
+];
+
+const SUBCONTRACTORS = [
+  { id:'sub1', code:'SUB-001', name:'Piling Solutions Ltd', agreement:148943, measured:49043, certified:49043, paid:0, status:'Active' },
+  { id:'sub2', code:'SUB-002', name:'Steel Fixers Co.', agreement:50000, measured:0, certified:0, paid:0, status:'Pending Start' },
+];
+
+const CLIENT_BILLS = [
+  { id:'ra1', code:'RA-01', period:'Jan 2024', grossWork:49150, retention:2457, advanceRec:0, taxDeduction:0, netPayable:46693, status:'Certified' },
+  { id:'ra2', code:'RA-02', period:'Feb 2024', grossWork:58200, retention:2910, advanceRec:5000, taxDeduction:1164, netPayable:49126, status:'Pending Submission' },
+];
+
+const VARIATIONS = [
+  { id:'var1', code:'VAR-001', desc:'Extra Pile P4 due to site condition', type:'Positive', costImpact:27750, status:'Pending Client Approval' },
+  { id:'var2', code:'VAR-002', desc:'Change concrete grade to M30', type:'Neutral', costImpact:0, status:'Approved' },
+];
+
+/* ----------------------- STATE & ROUTER ----------------------- */
+const state = {
+  currentView: 'dashboard'
+};
+
+const VIEWS = {
+  dashboard:      { title:'Commercial Dashboard',     sub:'Financial overview, cost control and profitability' },
+  budget:         { title:'Project Budget',           sub:'Tender vs Contract vs Approved Budget vs Actuals' },
+  cost_control:   { title:'Cost Control',             sub:'Committed vs Actual cost tracking' },
+  procurement:    { title:'Procurement Orders',      sub:'Purchase orders and supplier commitments' },
+  subcontract:    { title:'Subcontractor Billing',   sub:'Work measurement and running account bills' },
+  client_billing: { title:'Client Billing',          sub:'Running Account (RA) bills and certifications' },
+  variations:     { title:'Variations & Claims',      sub:'Contract changes and commercial impacts' },
+  integration:    { title:'Phase Integration',        sub:'Data flow from execution to commercial' },
+};
+
+/* ----------------------- HELPERS ----------------------- */
+function el(id) { return document.getElementById(id); }
+function $(sel, ctx=document) { return ctx.querySelector(sel); }
+function $$(sel, ctx=document) { return [...ctx.querySelectorAll(sel)]; }
+
+function statusBadge(status) {
+  const map = { 'Draft':'badge-draft','Pending':'badge-pending','Pending Submission':'badge-pending','Pending Client Approval':'badge-pending','Approved':'badge-approved','Rejected':'badge-rejected','Partially Delivered':'badge-partial','Certified':'badge-approved','Active':'badge-approved','Neutral':'badge-std' };
+  return `<span class="chip ${map[status] || 'badge-draft'}">${status}</span>`;
+}
+
+function fmtCur(val) {
+  return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function toast(msg) {
+  el('toastMsg').textContent = msg;
+  el('toast').classList.remove('hidden');
+  setTimeout(()=>el('toast').classList.add('hidden'), 2200);
+}
+
+function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+
+/* ----------------------- VIEW: DASHBOARD ----------------------- */
+function viewDashboard() {
+  const contractValue = BUDGETS.reduce((s,b)=>s+(b.contractRate*P2_BOQ_COMM.find(p=>p.code===b.code).approvedQty),0) + 500000; // Base + items
+  const approvedBudget = BUDGETS.reduce((s,b)=>s+(b.approvedBudget*P2_BOQ_COMM.find(p=>p.code===b.code).approvedQty),0);
+  const actualCost = BUDGETS.reduce((s,b)=>s+b.actualCost,0);
+  const committedCost = PURCHASE_ORDERS.reduce((s,p)=>s+(p.ordered*p.rate),0);
+  const certifiedRev = CLIENT_BILLS.reduce((s,b)=>s+b.grossWork,0);
+  const forecastCost = BUDGETS.reduce((s,b)=>s+(b.forecastCost*P2_BOQ_COMM.find(p=>p.code===b.code).approvedQty),0);
+  const forecastProfit = contractValue - forecastCost;
+  const margin = (forecastProfit / contractValue * 100).toFixed(1);
+
+  return `
+    <div class="space-y-6">
+      <!-- Hero -->
+      <div class="card overflow-hidden relative">
+        <div class="absolute inset-0 grid-bg opacity-50"></div>
+        <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-violet-50 to-transparent"></div>
+        <div class="relative p-6 flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="chip cat-comm">Phase 4</span>
+              <span class="chip cat-fin">Financial Control</span>
+              <span class="chip badge-approved">Profitable</span>
+            </div>
+            <h2 class="font-display text-2xl font-bold text-ink-900">Project Commercial Health</h2>
+            <p class="text-sm text-ink-600 mt-1 max-w-2xl">Tracking budget vs actuals, commitments, cash flow and profitability based on Phase 3 execution data.</p>
+          </div>
+          <div class="flex gap-6 items-center">
+            <div class="text-center">
+              <div class="text-3xl font-bold gradient-text">${margin}%</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Forecast Margin</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-amber-600">${(contractValue/1000000).toFixed(2)}M</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Contract Value</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-emerald-600">${(forecastProfit/1000).toFixed(0)}K</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Forecast Profit</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financial Stats -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="card p-4 border-l-4 border-violet-600">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center"><i data-lucide="wallet" class="w-5 h-5 text-violet-600"></i></div>
+            <div class="text-xs text-ink-500 uppercase tracking-wider">Approved Budget</div>
+          </div>
+          <div class="font-display text-xl font-bold text-ink-900">${fmtCur(approvedBudget)} <span class="text-xs font-normal text-ink-500">BDT</span></div>
+        </div>
+        <div class="card p-4 border-l-4 border-amber-500">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center"><i data-lucide="file-signature" class="w-5 h-5 text-amber-600"></i></div>
+            <div class="text-xs text-ink-500 uppercase tracking-wider">Committed Cost</div>
+          </div>
+          <div class="font-display text-xl font-bold text-ink-900">${fmtCur(committedCost)} <span class="text-xs font-normal text-ink-500">BDT</span></div>
+        </div>
+        <div class="card p-4 border-l-4 border-red-500">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center"><i data-lucide="trending-down" class="w-5 h-5 text-red-600"></i></div>
+            <div class="text-xs text-ink-500 uppercase tracking-wider">Actual Cost</div>
+          </div>
+          <div class="font-display text-xl font-bold text-ink-900">${fmtCur(actualCost)} <span class="text-xs font-normal text-ink-500">BDT</span></div>
+        </div>
+        <div class="card p-4 border-l-4 border-emerald-500">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center"><i data-lucide="trending-up" class="w-5 h-5 text-emerald-600"></i></div>
+            <div class="text-xs text-ink-500 uppercase tracking-wider">Certified Revenue</div>
+          </div>
+          <div class="font-display text-xl font-bold text-ink-900">${fmtCur(certifiedRev)} <span class="text-xs font-normal text-ink-500">BDT</span></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Cash Flow -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-ink-800">Cash Flow Status</h3>
+            <button class="text-xs text-violet-600 hover:underline">View Details →</button>
+          </div>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center p-3 bg-emerald-50 rounded-lg">
+              <span class="text-sm font-medium text-emerald-800">Cash Received (Client)</span>
+              <span class="font-mono font-bold text-emerald-700">+ ${fmtCur(46693)} BDT</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+              <span class="text-sm font-medium text-red-800">Cash Paid (Suppliers/Subs)</span>
+              <span class="font-mono font-bold text-red-700">- ${fmtCur(27750)} BDT</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-ink-50 rounded-lg border border-ink-200">
+              <span class="text-sm font-bold text-ink-800">Net Cash Position</span>
+              <span class="font-mono font-bold text-ink-900">${fmtCur(18943)} BDT</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-ink-800">Recent Commercial Activities</h3>
+          </div>
+          <div class="space-y-3 text-sm">
+            <div class="flex items-center gap-3 pb-3 border-b border-ink-100">
+              <i data-lucide="file-plus" class="w-4 h-4 text-violet-600"></i>
+              <div class="flex-1">
+                <div class="font-medium text-ink-800">RA Bill RA-01 submitted to Client</div>
+                <div class="text-xs text-ink-500">Amount: 46,693 BDT</div>
+              </div>
+              <span class="text-xs text-ink-500">2h ago</span>
+            </div>
+            <div class="flex items-center gap-3 pb-3 border-b border-ink-100">
+              <i data-lucide="package-check" class="w-4 h-4 text-amber-600"></i>
+              <div class="flex-1">
+                <div class="font-medium text-ink-800">PO-2024-001 partially delivered</div>
+                <div class="text-xs text-ink-500">150/200 bags received</div>
+              </div>
+              <span class="text-xs text-ink-500">5h ago</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <i data-lucide="users" class="w-4 h-4 text-blue-600"></i>
+              <div class="flex-1">
+                <div class="font-medium text-ink-800">Subcontractor bill certified</div>
+                <div class="text-xs text-ink-500">Piling Solutions Ltd: 49,043 BDT</div>
+              </div>
+              <span class="text-xs text-ink-500">1d ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: BUDGET ----------------------- */
+function viewBudget() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-ink-800">Project Budget Breakdown</h3>
+          <p class="text-xs text-ink-500">Comparing Tender Estimate, Contract Rate, Approved Budget, and Actuals</p>
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-violet-600 text-white rounded-lg hover:bg-violet-700 flex items-center gap-1.5" onclick="toast('Budget revision created')"><i data-lucide="git-commit" class="w-3.5 h-3.5"></i> Revise Budget</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>BOQ Code</th><th>Description</th><th>Tender Est.</th><th>Contract Rate</th><th>Approved Budget</th><th>Actual Cost</th><th>Variance</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${BUDGETS.map(b => {
+              const variance = b.approvedBudget - b.actualCost;
+              const varColor = variance > 0 ? 'text-emerald-600' : 'text-red-600';
+              return `
+                <tr>
+                  <td class="font-mono text-xs text-violet-700">${b.code}</td>
+                  <td class="font-medium text-ink-800">${b.desc}</td>
+                  <td class="font-mono">${fmtCur(b.tenderEst)}</td>
+                  <td class="font-mono font-semibold">${fmtCur(b.contractRate)}</td>
+                  <td class="font-mono text-blue-700">${fmtCur(b.approvedBudget)}</td>
+                  <td class="font-mono">${b.actualCost > 0 ? fmtCur(b.actualCost) : '—'}</td>
+                  <td class="font-mono font-semibold ${varColor}">${b.actualCost > 0 ? fmtCur(variance) : '—'}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="px-4 py-3 bg-ink-50 text-xs text-ink-600 border-t border-ink-200">
+        <i data-lucide="info" class="w-3.5 h-3.5 inline-block mr-1"></i> Budget revisions require management approval. Approved baselines cannot be overwritten.
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: COST CONTROL ----------------------- */
+function viewCostControl() {
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div class="card p-4">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Total Committed</div>
+        <div class="font-display text-2xl font-bold text-amber-600">${fmtCur(PURCHASE_ORDERS.reduce((s,p)=>s+p.ordered*p.rate,0))}</div>
+        <div class="text-xs text-ink-500 mt-1">From ${PURCHASE_ORDERS.length} Purchase Orders</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Actual Incurred</div>
+        <div class="font-display text-2xl font-bold text-red-600">${fmtCur(PURCHASE_ORDERS.reduce((s,p)=>s+p.invoiced*p.rate,0))}</div>
+        <div class="text-xs text-ink-500 mt-1">Invoiced and accepted</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Forecast to Complete</div>
+        <div class="font-display text-2xl font-bold text-violet-600">${fmtCur(BUDGETS.reduce((s,b)=>s+b.forecastCost,0))}</div>
+        <div class="text-xs text-ink-500 mt-1">Based on current consumption</div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <h3 class="font-semibold text-ink-800 mb-4">Cost Variance Analysis</h3>
+      <div class="space-y-4">
+        ${BUDGETS.filter(b=>b.actualCost>0).map(b => {
+          const budgetTotal = b.approvedBudget * P2_BOQ_COMM.find(p=>p.code===b.code).approvedQty;
+          const actualTotal = b.actualCost; // mock simplified
+          const pct = (actualTotal / budgetTotal * 100).toFixed(0);
+          const isOver = actualTotal > budgetTotal;
+          return `
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-ink-800 font-medium">${b.desc}</span>
+                <span class="text-ink-600 font-mono ${isOver ? 'text-red-600' : 'text-emerald-600'}">${fmtCur(actualTotal)} / ${fmtCur(budgetTotal)} (${pct}%)</span>
+              </div>
+              <div class="w-full h-2.5 bg-ink-100 rounded-full overflow-hidden">
+                <div class="${isOver ? 'bg-red-500' : 'bg-emerald-500'} h-full rounded-full" style="width:${Math.min(pct, 100)}%"></div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: PROCUREMENT ----------------------- */
+function viewProcurement() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-ink-800">Purchase Orders</h3>
+          <p class="text-xs text-ink-500">Committing costs against project budget</p>
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-violet-600 text-white rounded-lg hover:bg-violet-700 flex items-center gap-1.5" onclick="toast('PO draft created')"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Create PO</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr><th>PO Code</th><th>Supplier</th><th>Description</th><th>Ordered</th><th>Delivered</th><th>Invoiced</th><th>Value</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            ${PURCHASE_ORDERS.map(p => `
+              <tr>
+                <td class="font-mono text-xs text-violet-700">${p.code}</td>
+                <td class="font-medium text-ink-800">${p.supplier}</td>
+                <td class="text-xs text-ink-600">${p.desc}</td>
+                <td class="font-mono">${p.ordered} ${p.unit}</td>
+                <td class="font-mono text-emerald-600">${p.delivered} ${p.unit}</td>
+                <td class="font-mono text-blue-600">${p.invoiced} ${p.unit}</td>
+                <td class="font-mono font-semibold">${fmtCur(p.ordered * p.rate)}</td>
+                <td>${statusBadge(p.status)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: SUBCONTRACTOR ----------------------- */
+function viewSubcontractor() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-ink-800">Subcontractor Running Accounts</h3>
+          <p class="text-xs text-ink-500">Measurement based on Phase 3 verified execution</p>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr><th>Subcontractor</th><th>Agreement Value</th><th>Measured Work</th><th>Certified</th><th>Paid</th><th>Balance Due</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            ${SUBCONTRACTORS.map(s => `
+              <tr>
+                <td class="font-medium text-ink-800">${s.name}<div class="text-[10px] font-mono text-ink-500">${s.code}</div></td>
+                <td class="font-mono">${fmtCur(s.agreement)}</td>
+                <td class="font-mono text-amber-600">${fmtCur(s.measured)}</td>
+                <td class="font-mono text-emerald-600">${fmtCur(s.certified)}</td>
+                <td class="font-mono text-red-600">${fmtCur(s.paid)}</td>
+                <td class="font-mono font-semibold">${fmtCur(s.certified - s.paid)}</td>
+                <td>${statusBadge(s.status)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: CLIENT BILLING ----------------------- */
+function viewClientBilling() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-ink-800">Client Running Account (RA) Bills</h3>
+          <p class="text-xs text-ink-500">Invoicing based on Phase 3 approved progress</p>
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-violet-600 text-white rounded-lg hover:bg-violet-700 flex items-center gap-1.5" onclick="toast('RA Bill generated')"><i data-lucide="file-plus" class="w-3.5 h-3.5"></i> Generate RA Bill</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr><th>Bill No.</th><th>Period</th><th>Gross Work</th><th>Retention (5%)</th><th>Adv. Recovery</th><th>Tax</th><th>Net Payable</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            ${CLIENT_BILLS.map(b => `
+              <tr>
+                <td class="font-mono text-xs text-violet-700">${b.code}</td>
+                <td class="text-xs text-ink-600">${b.period}</td>
+                <td class="font-mono font-semibold text-ink-900">${fmtCur(b.grossWork)}</td>
+                <td class="font-mono text-red-500">- ${fmtCur(b.retention)}</td>
+                <td class="font-mono text-red-500">- ${fmtCur(b.advanceRec)}</td>
+                <td class="font-mono text-red-500">- ${fmtCur(b.taxDeduction)}</td>
+                <td class="font-mono font-bold text-emerald-700">${fmtCur(b.netPayable)}</td>
+                <td>${statusBadge(b.status)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: VARIATIONS ----------------------- */
+function viewVariations() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-ink-800">Variations & Claims Register</h3>
+          <p class="text-xs text-ink-500">Tracking commercial impacts of Phase 2 drawing revisions</p>
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-violet-600 text-white rounded-lg hover:bg-violet-700 flex items-center gap-1.5" onclick="toast('Variation logged')"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Log Variation</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead><tr><th>Code</th><th>Description</th><th>Type</th><th>Cost Impact</th><th>Status</th></tr></thead>
+          <tbody>
+            ${VARIATIONS.map(v => `
+              <tr>
+                <td class="font-mono text-xs text-violet-700">${v.code}</td>
+                <td class="font-medium text-ink-800">${v.desc}</td>
+                <td><span class="chip ${v.type==='Positive' ? 'badge-approved' : 'badge-std'}">${v.type}</span></td>
+                <td class="font-mono font-semibold ${v.costImpact>0?'text-red-600':'text-ink-600'}">${v.costImpact>0?'+ ':''}${fmtCur(v.costImpact)}</td>
+                <td>${statusBadge(v.status)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: INTEGRATION ----------------------- */
+function viewIntegration() {
+  return `
+    <div class="card p-6">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center"><i data-lucide="link" class="w-5 h-5 text-violet-700"></i></div>
+        <div>
+          <h3 class="font-semibold text-ink-800">Commercial Data Integration</h3>
+          <p class="text-xs text-ink-500">Phase 4 converting execution data into financial transactions</p>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="border border-ink-200 rounded-lg p-4">
+          <div class="text-xs font-bold text-ink-500 uppercase mb-3">Phase 1 Integration</div>
+          <div class="text-xs text-ink-600 space-y-2 font-mono">
+            <div>✓ Resource unit rates retrieved</div>
+            <div>✓ Material specifications verified</div>
+            <div>✓ Subcontractor categories mapped</div>
+          </div>
+        </div>
+        <div class="border border-ink-200 rounded-lg p-4">
+          <div class="text-xs font-bold text-ink-500 uppercase mb-3">Phase 2 Integration</div>
+          <div class="text-xs text-ink-600 space-y-2 font-mono">
+            <div>✓ Approved BOQ rates locked</div>
+            <div>✓ Contract value baseline synced</div>
+            <div>✓ Drawing revisions triggering variations</div>
+          </div>
+        </div>
+        <div class="border border-ink-200 rounded-lg p-4">
+          <div class="text-xs font-bold text-ink-500 uppercase mb-3">Phase 3 Integration</div>
+          <div class="text-xs text-ink-600 space-y-2 font-mono">
+            <div>✓ Approved quantities converted to revenue</div>
+            <div>✓ Material consumption mapped to actual cost</div>
+            <div>✓ Subcontractor execution measured for billing</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 bg-violet-50 rounded-lg p-4 border border-violet-200">
+        <h4 class="font-semibold text-violet-900 mb-2 text-sm flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Financial Integrity Rules Enforced</h4>
+        <ul class="text-xs text-violet-800 space-y-1 list-disc list-inside">
+          <li>Submitted client bills are NOT recognized as revenue until certified.</li>
+          <li>Certified bills are NOT considered cash until received.</li>
+          <li>Purchase orders represent commitments, NOT actual expenses.</li>
+          <li>Material issuance is NOT final consumption until verified.</li>
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- NAVIGATION ----------------------- */
+window.navigateTo = function(view) {
+  state.currentView = view;
+  const v = VIEWS[view] || { title: view, sub: '' };
+  el('pageTitle').textContent = v.title;
+  el('pageSubtitle').textContent = v.sub;
+  $$('.sidebar-link').forEach(l => l.classList.toggle('active', l.dataset.view === view));
+  render();
+  refreshIcons();
+};
+
+/* ----------------------- RENDER ----------------------- */
+function render() {
+  const view = state.currentView;
+  const map = {
+    dashboard: viewDashboard,
+    budget: viewBudget,
+    cost_control: viewCostControl,
+    procurement: viewProcurement,
+    subcontract: viewSubcontractor,
+    client_billing: viewClientBilling,
+    variations: viewVariations,
+    integration: viewIntegration,
+  };
+  el('app').innerHTML = (map[view] || viewDashboard)();
+  refreshIcons();
+  el('app').scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ----------------------- INIT ----------------------- */
+function init() {
+  $$('.sidebar-link').forEach(link => {
+    link.addEventListener('click', e => { e.preventDefault(); navigateTo(link.dataset.view); });
+  });
+  navigateTo('dashboard');
+}
+
+init();
+</script>
+</body>
+</html>

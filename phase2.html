@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ConstMaster Phase 2 — Drawing & BOQ Preparation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          display: ['Space Grotesk', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          ink: { 50:'#f8fafc', 100:'#f1f5f9', 200:'#e2e8f0', 300:'#cbd5e1', 400:'#94a3b8', 500:'#64748b', 600:'#475569', 700:'#334155', 800:'#1e293b', 900:'#0f172a', 950:'#020617' },
+          brand: { 50:'#eef4ff', 100:'#d9e6ff', 200:'#bcd3ff', 300:'#8fb6ff', 400:'#5b8eff', 500:'#3b69f5', 600:'#2749d4', 700:'#1f3aae', 800:'#1f348a', 900:'#1f3070', 950:'#161f44' },
+          amber: { 500:'#f59e0b', 600:'#d97706' },
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --surface: #ffffff;
+    --border: #e6e9f0;
+    --ink-1: #0f172a;
+    --ink-2: #475569;
+    --ink-3: #94a3b8;
+    --brand: #1f3aae;
+    --amber: #d97706;
+  }
+  html, body { background: var(--bg); color: var(--ink-1); font-family: 'Inter', sans-serif; }
+  * { -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .sidebar-link { transition: all .15s ease; }
+  .sidebar-link:hover { background: rgba(255,255,255,.06); }
+  .sidebar-link.active { background: rgba(245,158,11,.15); color: #fbbf24; box-shadow: inset 2px 0 0 #f59e0b; }
+  .sidebar-link.active .icon-wrap { color: #fbbf24; }
+
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 14px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.02em; }
+
+  .badge-draft   { background:#fef3c7; color:#92400e; }
+  .badge-pending { background:#dbeafe; color:#1e40af; }
+  .badge-approved{ background:#dcfce7; color:#166534; }
+  .badge-rejected{ background:#fee2e2; color:#991b1b; }
+  .badge-obsolete{ background:#f1f5f9; color:#475569; }
+
+  .cat-bim   { background:#e0e7ff; color:#3730a3; }
+  .cat-mat   { background:#ffedd5; color:#9a3412; }
+  .cat-draw  { background:#f0fdf4; color:#166534; }
+  .cat-boq   { background:#ede9fe; color:#5b21b6; }
+  .cat-qto   { background:#ccfbf1; color:#115e59; }
+  .cat-std   { background:#e2e8f0; color:#334155; }
+  .cat-ai    { background:#fae8ff; color:#86198f; }
+
+  table.data-table { border-collapse: collapse; width:100%; font-size:13px; }
+  table.data-table th { text-align:left; padding:10px 12px; background:#f8fafc; color:#475569; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid var(--border); position:sticky; top:0; }
+  table.data-table td { padding:10px 12px; border-bottom:1px solid #f1f5f9; color:#1e293b; }
+  table.data-table tr:hover td { background:#f8fafc; }
+
+  .field-label { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; font-weight:600; margin-bottom:4px; display:block; }
+  .input-field { width:100%; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:8px 10px; font-size:13px; color:#0f172a; outline:none; transition: border .15s; }
+  .input-field:focus { border-color:#2749d4; box-shadow: 0 0 0 3px rgba(39,73,212,.1); }
+
+  .tab-btn { padding:8px 14px; font-size:13px; font-weight:500; color:#475569; border-bottom:2px solid transparent; cursor:pointer; }
+  .tab-btn.active { color:#1f3aae; border-bottom-color:#1f3aae; }
+
+  .modal-backdrop { background:rgba(15,23,42,.55); backdrop-filter:blur(4px); }
+
+  .pulse-dot { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 0 rgba(34,197,94,.5); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)} 70%{box-shadow:0 0 0 10px rgba(34,197,94,0)} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(148,163,184,.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .gradient-text { background:linear-gradient(135deg,#1f3aae,#3b69f5); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  
+  .tree-item { padding:6px 10px; border-radius:6px; cursor:pointer; transition: background .15s; display:flex; align-items:center; gap:6px; }
+  .tree-item:hover { background:#f1f5f9; }
+  .tree-item.selected { background:#dbeafe; color:#1e40af; font-weight:600; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside class="w-64 bg-ink-900 text-ink-100 flex-shrink-0 flex flex-col fixed lg:relative h-screen z-30 print:hidden" id="sidebar">
+    <div class="px-5 py-4 flex items-center gap-3 border-b border-ink-800">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
+        <i data-lucide="drafting-compass" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="font-display font-bold text-white text-lg leading-tight">DrawBOQ</div>
+        <div class="text-[10px] text-ink-400 tracking-widest uppercase">Phase 2 · BOQ Engine</div>
+      </div>
+    </div>
+
+    <!-- Project Selector -->
+    <div class="px-4 py-3 border-b border-ink-800">
+      <div class="text-[10px] text-ink-500 uppercase tracking-widest font-semibold mb-1">Active Project</div>
+      <div class="bg-ink-800 rounded-lg p-2 flex items-center gap-2">
+        <i data-lucide="building" class="w-4 h-4 text-amber-500"></i>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs font-medium text-white truncate">Fish Landing Centre</div>
+          <div class="text-[10px] text-ink-400 truncate">PRJ-FLC-2024 · BDT</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 text-sm" id="nav">
+      <div class="px-3 pt-2 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Overview</div>
+      <a data-view="dashboard" class="sidebar-link active flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="layout-dashboard" class="w-4 h-4"></i></span> Project Dashboard
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Engineering Environment</div>
+      <a data-view="drawings" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="file-image" class="w-4 h-4"></i></span> Drawing Register
+      </a>
+      <a data-view="grids" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="grid-3x3" class="w-4 h-4"></i></span> Grids & Elevations
+      </a>
+      <a data-view="bim_entry" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="box-select" class="w-4 h-4"></i></span> BIM Element Entry
+      </a>
+      <a data-view="qto" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="calculator" class="w-4 h-4"></i></span> Quantity Take-Off (QTO)
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">BOQ Environment</div>
+      <a data-view="boq" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="list-tree" class="w-4 h-4"></i></span> BOQ Builder
+      </a>
+      <a data-view="ai_extract" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="scan-search" class="w-4 h-4"></i></span> AI Drawing Extract
+      </a>
+      <a data-view="approvals" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="git-pull-request" class="w-4 h-4"></i></span> Approval Centre
+      </a>
+      
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Integration</div>
+      <a data-view="phase1" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="database" class="w-4 h-4"></i></span> Phase 1 Master DB
+      </a>
+    </nav>
+
+    <div class="border-t border-ink-800 p-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-amber-500 flex items-center justify-center font-semibold text-white text-sm">KS</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-white truncate">K. Senanayake</div>
+          <div class="text-[10px] text-ink-400 flex items-center gap-1"><span class="pulse-dot"></span> Lead Estimator</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 lg:ml-0 min-w-0 flex flex-col">
+    <!-- Topbar -->
+    <header class="bg-white border-b border-ink-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
+      <div class="flex items-center gap-3">
+        <button class="lg:hidden text-ink-600" id="menuBtn"><i data-lucide="menu" class="w-5 h-5"></i></button>
+        <div>
+          <h1 id="pageTitle" class="font-display text-lg font-semibold text-ink-900">Project Dashboard</h1>
+          <p id="pageSubtitle" class="text-xs text-ink-500">Fish Landing Centre Development Project</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button class="px-3 py-1.5 text-xs font-medium border border-ink-200 rounded-lg text-ink-700 hover:bg-ink-50 flex items-center gap-1.5"><i data-lucide="file-down" class="w-3.5 h-3.5"></i> Export BOQ</button>
+        <button class="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 flex items-center gap-1.5"><i data-lucide="upload" class="w-3.5 h-3.5"></i> Upload Drawings</button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-6 overflow-x-hidden" id="app"></main>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col" id="modalContent"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden bg-ink-900 text-white px-4 py-3 rounded-lg shadow-xl text-sm flex items-center gap-2">
+  <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+  <span id="toastMsg">Done</span>
+</div>
+
+<script>
+/* =========================================================================
+   CONSTMASTER PHASE 2 — DRAWING & BOQ PREPARATION
+   ========================================================================= */
+
+/* ----------------------- MOCK PHASE 1 MASTER DATA ----------------------- */
+const P1_BIM = [
+  { id:'b1', code:'BIM-FND-001', name:'Bored Cast-in-situ Pile', unit:'m³', formula:'V = (π × D² / 4) × L', props:['diameter','length','cutoff','toe'] },
+  { id:'b2', code:'BIM-FND-002', name:'Pile Cap', unit:'m³', formula:'V = L × W × D', props:['length','width','depth'] },
+  { id:'b5', code:'BIM-STR-001', name:'RC Column', unit:'m³', formula:'V = W × D × H', props:['width','depth','height'] },
+  { id:'b6', code:'BIM-STR-002', name:'RC Beam', unit:'m³', formula:'V = W × D × L', props:['width','depth','length'] },
+  { id:'b7', code:'BIM-STR-003', name:'RC Slab', unit:'m³', formula:'V = Area × Thickness', props:['area','thickness'] },
+  { id:'b9', code:'BIM-ARC-001', name:'Brick Masonry Wall', unit:'m³', formula:'V = L × T × H', props:['length','thickness','height'] },
+];
+
+/* ----------------------- MOCK PHASE 2 PROJECT DATA ----------------------- */
+const DRAWINGS = [
+  { id:'d1', code:'STR-FND-001', title:'Pile Layout - Traders Building', rev:'B', discipline:'Structural', status:'Approved', date:'2024-01-15', linkedElements:12 },
+  { id:'d2', code:'STR-FND-002', title:'Pile Cap Details', rev:'A', discipline:'Structural', status:'Pending Review', date:'2024-01-16', linkedElements:4 },
+  { id:'d3', code:'STR-SUP-001', title:'Ground Floor Column Layout', rev:'A', discipline:'Structural', status:'Approved', date:'2024-01-10', linkedElements:8 },
+  { id:'d4', code:'ARC-DR-001', title:'Ground Floor Plan', rev:'C', discipline:'Architectural', status:'Approved', date:'2024-01-18', linkedElements:0 },
+  { id:'d5', code:'STR-SUP-002', title:'First Floor Beam & Slab', rev:'A', discipline:'Structural', status:'Superseded', date:'2023-12-05', linkedElements:15 },
+];
+
+const GRID_SYSTEM = [
+  { id:'g1', name:'X1', type:'Linear', coord:'0.000m' },
+  { id:'g2', name:'X2', type:'Linear', coord:'6.500m' },
+  { id:'g3', name:'X3', type:'Linear', coord:'13.000m' },
+  { id:'g4', name:'Y1', type:'Linear', coord:'0.000m' },
+  { id:'g5', name:'Y2', type:'Linear', coord:'7.200m' },
+];
+
+const ELEVATIONS = [
+  { id:'e1', name:'Project Datum', value:'+0.000m', type:'Datum' },
+  { id:'e2', name:'Existing Ground', value:'+0.450m', type:'Natural' },
+  { id:'e3', name:'Pile Cut-off', value:'-1.350m', type:'Foundation' },
+  { id:'e4', name:'Pile Toe', value:'-14.850m', type:'Foundation' },
+  { id:'e5', name:'Ground Floor Finish', value:'+0.150m', type:'Slab' },
+];
+
+/* PROJECT-SPECIFIC ENGINEERING ELEMENTS (LINKED TO PHASE 1) */
+const ENG_ELEMENTS = [
+  { id:'ee1', p1Ref:'b1', p1Code:'BIM-FND-001', elemId:'P1-X1Y1', gridX:'X1', gridY:'Y1', drawing:'d1', dims:{ diameter:500, length:13.5 }, calcQty:2.651, unit:'m³', status:'Calculated' },
+  { id:'ee2', p1Ref:'b1', p1Code:'BIM-FND-001', elemId:'P1-X1Y2', gridX:'X1', gridY:'Y2', drawing:'d1', dims:{ diameter:500, length:13.5 }, calcQty:2.651, unit:'m³', status:'Calculated' },
+  { id:'ee3', p1Ref:'b1', p1Code:'BIM-FND-001', elemId:'P1-X2Y1', gridX:'X2', gridY:'Y1', drawing:'d1', dims:{ diameter:500, length:14.0 }, calcQty:2.749, unit:'m³', status:'Calculated' },
+  { id:'ee4', p1Ref:'b2', p1Code:'BIM-FND-002', elemId:'PC1-X1Y1', gridX:'X1', gridY:'Y1', drawing:'d2', dims:{ length:2.5, width:2.5, depth:1.2 }, calcQty:7.500, unit:'m³', status:'Draft' },
+  { id:'ee5', p1Ref:'b5', p1Code:'BIM-STR-001', elemId:'C1-X1Y1', gridX:'X1', gridY:'Y1', drawing:'d3', dims:{ width:0.4, depth:0.6, height:3.5 }, calcQty:0.840, unit:'m³', status:'Calculated' },
+];
+
+const BOQ_ITEMS = [
+  { code:'01.01', desc:'Mobilization', unit:'Lump', qty:1, rate:500000, amount:500000, type:'Prelim' },
+  { code:'03.01', desc:'Bored Cast-in-situ Pile (500mm dia)', unit:'m³', qty:8.051, rate:18500, amount:148943, type:'Foundation', linked:true },
+  { code:'03.02', desc:'Pile Cap Concrete (Grade 30)', unit:'m³', qty:7.500, rate:15500, amount:116250, type:'Foundation', linked:true },
+  { code:'04.01', desc:'RC Column Concrete (Grade 30)', unit:'m³', qty:0.840, rate:16000, amount:13440, type:'Structure', linked:true },
+  { code:'05.01', desc:'Brick Masonry Wall 200mm', unit:'m³', qty:0, rate:9500, amount:0, type:'Arch', linked:false },
+];
+
+/* ----------------------- STATE & ROUTER ----------------------- */
+const state = {
+  currentView: 'dashboard',
+  selectedDrawing: null,
+  selectedBimP1: 'b1'
+};
+
+const VIEWS = {
+  dashboard:  { title:'Project Dashboard', sub:'Fish Landing Centre Development Project' },
+  drawings:   { title:'Drawing Register', sub:'Centralized drawing repository and revision control' },
+  grids:      { title:'Grids & Elevations', sub:'Project coordinate and level management' },
+  bim_entry:  { title:'BIM Element Engineering Entry', sub:'Project-specific dimensions mapped to Phase 1 master elements' },
+  qto:        { title:'Quantity Take-Off', sub:'Aggregated calculated quantities from engineering records' },
+  boq:        { title:'BOQ Builder', sub:'Hierarchical Bill of Quantities generation' },
+  ai_extract: { title:'AI Drawing Extraction', sub:'Automated dimension and schedule extraction proposals' },
+  approvals: { title:'Approval Centre', sub:'Submit engineering records and BOQ for review' },
+  phase1:     { title:'Phase 1 Master DB', sub:'Read-only integration with Construction Master Database' },
+};
+
+/* ----------------------- HELPERS ----------------------- */
+function el(id) { return document.getElementById(id); }
+function $(sel, ctx=document) { return ctx.querySelector(sel); }
+function $$(sel, ctx=document) { return [...ctx.querySelectorAll(sel)]; }
+
+function statusBadge(status) {
+  const map = { 'Draft':'badge-draft','Pending':'badge-pending','Pending Review':'badge-pending','Calculated':'badge-pending','Approved':'badge-approved','Rejected':'badge-rejected','Superseded':'badge-obsolete' };
+  return `<span class="chip ${map[status] || 'badge-draft'}">${status}</span>`;
+}
+
+function toast(msg) {
+  el('toastMsg').textContent = msg;
+  el('toast').classList.remove('hidden');
+  setTimeout(()=>el('toast').classList.add('hidden'), 2200);
+}
+
+function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+
+/* ----------------------- VIEW: DASHBOARD ----------------------- */
+function viewDashboard() {
+  const totalBoqValue = BOQ_ITEMS.reduce((s,i)=>s+i.amount, 0);
+  const calculatedQty = ENG_ELEMENTS.filter(e=>e.status==='Calculated').reduce((s,e)=>s+e.calcQty,0);
+  
+  return `
+    <div class="space-y-6">
+      <!-- Hero -->
+      <div class="card overflow-hidden relative">
+        <div class="absolute inset-0 grid-bg opacity-50"></div>
+        <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-brand-50 to-transparent"></div>
+        <div class="relative p-6 flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="chip cat-draw">Phase 2</span>
+              <span class="chip cat-boq">BOQ & Engineering</span>
+              <span class="chip badge-approved">Active</span>
+            </div>
+            <h2 class="font-display text-2xl font-bold text-ink-900">Fish Landing Centre Development</h2>
+            <p class="text-sm text-ink-600 mt-1 max-w-2xl">Converting project drawings and engineering inputs into a traceable Bill of Quantities. Using Phase 1 as authoritative Master Data source.</p>
+          </div>
+          <div class="flex gap-6 items-center">
+            <div class="text-center">
+              <div class="text-3xl font-bold gradient-text">${DRAWINGS.length}</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Drawings</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-amber-600">${ENG_ELEMENTS.length}</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Eng. Elements</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-emerald-600">${(totalBoqValue/1000000).toFixed(2)}M</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">BOQ Value (BDT)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Project Progress -->
+        <div class="card p-5 lg:col-span-2">
+          <h3 class="font-semibold text-ink-800 mb-4">Project Engineering Progress</h3>
+          <div class="space-y-4">
+            ${[
+              { label:'Drawings Registered', val: DRAWINGS.length, max: 20, color:'bg-emerald-500' },
+              { label:'Grids & Elevations Defined', val: 11, max: 15, color:'bg-blue-500' },
+              { label:'BIM Elements Entered', val: ENG_ELEMENTS.length, max: 150, color:'bg-amber-500' },
+              { label:'Quantities Calculated', val: ENG_ELEMENTS.filter(e=>e.status==='Calculated').length, max: ENG_ELEMENTS.length, color:'bg-indigo-500' },
+            ].map(p => `
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-ink-600 font-medium">${p.label}</span>
+                  <span class="text-ink-800 font-mono">${p.val} / ${p.max}</span>
+                </div>
+                <div class="w-full h-2 bg-ink-100 rounded-full overflow-hidden">
+                  <div class="${p.color} h-full rounded-full" style="width:${(p.val/p.max*100)}%"></div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="space-y-4">
+          <div class="card p-4 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center"><i data-lucide="check-circle-2" class="w-6 h-6 text-emerald-600"></i></div>
+            <div>
+              <div class="font-display text-xl font-bold text-ink-900">${DRAWINGS.filter(d=>d.status==='Approved').length}</div>
+              <div class="text-xs text-ink-500">Approved Drawings</div>
+            </div>
+          </div>
+          <div class="card p-4 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center"><i data-lucide="clock" class="w-6 h-6 text-amber-600"></i></div>
+            <div>
+              <div class="font-display text-xl font-bold text-ink-900">${DRAWINGS.filter(d=>d.status==='Pending Review').length}</div>
+              <div class="text-xs text-ink-500">Pending Review</div>
+            </div>
+          </div>
+          <div class="card p-4 flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center"><i data-lucide="calculator" class="w-6 h-6 text-indigo-600"></i></div>
+            <div>
+              <div class="font-display text-xl font-bold text-ink-900">${calculatedQty.toFixed(2)} m³</div>
+              <div class="text-xs text-ink-500">Calculated Concrete Vol.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOQ Summary -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-ink-800">BOQ Abstract Summary</h3>
+          <button onclick="navigateTo('boq')" class="text-xs text-brand-600 hover:underline flex items-center gap-1">View Full BOQ <i data-lucide="arrow-right" class="w-3 h-3"></i></button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr><th>BOQ Code</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate (BDT)</th><th>Amount (BDT)</th><th>Traceability</th></tr>
+            </thead>
+            <tbody>
+              ${BOQ_ITEMS.map(b => `
+                <tr>
+                  <td class="font-mono text-xs">${b.code}</td>
+                  <td class="font-medium text-ink-800">${b.desc}</td>
+                  <td><span class="chip cat-std">${b.unit}</span></td>
+                  <td class="font-mono">${b.qty.toLocaleString()}</td>
+                  <td class="font-mono">${b.rate.toLocaleString()}</td>
+                  <td class="font-mono font-semibold">${b.amount.toLocaleString()}</td>
+                  <td>${b.linked ? `<span class="chip cat-boq">Linked to QTO</span>` : `<span class="chip cat-std">Manual</span>`}</td>
+                </tr>
+              `).join('')}
+              <tr class="bg-ink-50 font-bold">
+                <td colspan="5" class="text-right">Total Project BOQ Value</td>
+                <td class="font-mono text-brand-700">${totalBoqValue.toLocaleString()}</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: DRAWING REGISTER ----------------------- */
+function viewDrawings() {
+  return `
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex gap-2">
+          <button class="tab-btn active">All Drawings (${DRAWINGS.length})</button>
+          <button class="tab-btn">Structural (${DRAWINGS.filter(d=>d.discipline==='Structural').length})</button>
+          <button class="tab-btn">Architectural (${DRAWINGS.filter(d=>d.discipline==='Architectural').length})</button>
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 flex items-center gap-1.5" onclick="toast('Upload drawing modal')"><i data-lucide="upload" class="w-3.5 h-3.5"></i> Upload Drawing</button>
+      </div>
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr><th>Drawing No.</th><th>Title</th><th>Discipline</th><th>Rev.</th><th>Status</th><th>Date</th><th>Linked Elements</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              ${DRAWINGS.map(d => `
+                <tr>
+                  <td class="font-mono text-xs text-brand-700">${d.code}</td>
+                  <td class="font-medium text-ink-800">${d.title}</td>
+                  <td><span class="chip cat-draw">${d.discipline}</span></td>
+                  <td class="font-mono font-semibold">${d.rev}</td>
+                  <td>${statusBadge(d.status)}</td>
+                  <td class="text-xs text-ink-500">${d.date}</td>
+                  <td class="font-mono">${d.linkedElements}</td>
+                  <td>
+                    <button onclick="openDrawingDetail('${d.id}')" class="text-xs text-brand-600 hover:underline">View</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: GRIDS & ELEVATIONS ----------------------- */
+function viewGrids() {
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-ink-800">Grid System</h3>
+          <button class="text-xs text-brand-600 flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Add Grid</button>
+        </div>
+        <div class="space-y-2">
+          ${GRID_SYSTEM.map(g => `
+            <div class="flex items-center gap-3 p-3 border border-ink-200 rounded-lg">
+              <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold">${g.name}</div>
+              <div class="flex-1">
+                <div class="text-sm font-medium text-ink-800">Grid ${g.name}</div>
+                <div class="text-xs text-ink-500">${g.type} · Coord: ${g.coord}</div>
+              </div>
+              <button class="text-ink-400 hover:text-ink-700"><i data-lucide="map-pin" class="w-4 h-4"></i></button>
+            </div>
+          `).join('')}
+        </div>
+        <div class="mt-4 pt-4 border-t border-ink-200">
+          <div class="text-xs text-ink-500 mb-2">Auto-generated Intersections</div>
+          <div class="flex flex-wrap gap-2">
+            <span class="chip cat-std">X1-Y1</span>
+            <span class="chip cat-std">X1-Y2</span>
+            <span class="chip cat-std">X2-Y1</span>
+            <span class="chip cat-std">X2-Y2</span>
+            <span class="chip cat-std">X3-Y1</span>
+            <span class="chip cat-std">X3-Y2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-ink-800">Project Elevations</h3>
+          <button class="text-xs text-brand-600 flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Add Level</button>
+        </div>
+        <div class="space-y-2">
+          ${ELEVATIONS.map(e => `
+            <div class="flex items-center gap-3 p-3 border border-ink-200 rounded-lg">
+              <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center"><i data-lucide="move-vertical" class="w-5 h-5"></i></div>
+              <div class="flex-1">
+                <div class="text-sm font-medium text-ink-800">${e.name}</div>
+                <div class="text-xs text-ink-500">${e.type}</div>
+              </div>
+              <div class="font-mono text-sm font-semibold ${e.value.includes('-') ? 'text-red-600' : 'text-emerald-600'}">${e.value}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: BIM ENTRY ----------------------- */
+function viewBimEntry() {
+  const selected = P1_BIM.find(b => b.id === state.selectedBimP1);
+  
+  return `
+    <div class="space-y-4">
+      <div class="card p-4">
+        <div class="flex items-center gap-2 text-sm text-ink-600 mb-3">
+          <i data-lucide="info" class="w-4 h-4"></i>
+          <span>Engineering elements are instances of Phase 1 Master BIM Objects. Do not duplicate master definitions.</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label class="field-label">Project</label>
+            <select class="input-field"><option>Fish Landing Centre</option></select>
+          </div>
+          <div>
+            <label class="field-label">Work Package / Building</label>
+            <select class="input-field"><option>WP02 - Traders Building</option></select>
+          </div>
+          <div>
+            <label class="field-label">Drawing Reference</label>
+            <select class="input-field">${DRAWINGS.map(d=>`<option>${d.code} Rev:${d.rev}</option>`).join('')}</select>
+          </div>
+          <div>
+            <label class="field-label">Phase 1 Master BIM Element</label>
+            <select id="bimSelect" class="input-field" onchange="changeBimSelect(this.value)">
+              ${P1_BIM.map(b => `<option value="${b.id}" ${b.id===state.selectedBimP1?'selected':''}>${b.code} - ${b.name}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Entry Form -->
+        <div class="lg:col-span-1 card p-5">
+          <h3 class="font-semibold text-ink-800 mb-1">Element Entry Form</h3>
+          <p class="text-xs text-ink-500 mb-4">Instance of: <span class="font-mono text-brand-600">${selected.code}</span></p>
+          
+          <div class="space-y-3">
+            <div>
+              <label class="field-label">Element ID (Project Specific)</label>
+              <input type="text" class="input-field" value="P1-X1Y1" />
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="field-label">Grid X</label>
+                <select class="input-field"><option>X1</option><option>X2</option><option>X3</option></select>
+              </div>
+              <div>
+                <label class="field-label">Grid Y</label>
+                <select class="input-field"><option>Y1</option><option>Y2</option></select>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-ink-200 mt-2">
+              <div class="text-xs font-semibold text-ink-700 mb-2">Project-Specific Dimensions</div>
+              ${selected.props.map(p => `
+                <div class="mb-2">
+                  <label class="field-label capitalize">${p}</label>
+                  <input type="text" class="input-field" placeholder="e.g. 500" />
+                </div>
+              `).join('')}
+            </div>
+
+            <button onclick="toast('Quantity calculated successfully')" class="w-full mt-3 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 flex items-center justify-center gap-2 text-sm font-medium">
+              <i data-lucide="calculator" class="w-4 h-4"></i> Calculate Quantity
+            </button>
+          </div>
+        </div>
+
+        <!-- Calculation & List -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="card p-5 bg-ink-50">
+            <h3 class="font-semibold text-ink-800 mb-2">Quantity Calculation Engine</h3>
+            <div class="text-xs text-ink-600 mb-3">Formula retrieved from Phase 1 Master Database</div>
+            <div class="bg-white border border-ink-200 rounded-lg p-3 font-mono text-sm text-brand-700">
+              ${selected.formula}
+            </div>
+            <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+              <div class="bg-white p-2 rounded-lg border border-ink-200">
+                <div class="text-[10px] text-ink-500 uppercase">Input Value</div>
+                <div class="text-sm font-mono text-ink-800 mt-1">D=500, L=13.5</div>
+              </div>
+              <div class="bg-white p-2 rounded-lg border border-ink-200">
+                <div class="text-[10px] text-ink-500 uppercase">Result</div>
+                <div class="text-sm font-mono text-ink-800 mt-1">2.651</div>
+              </div>
+              <div class="bg-emerald-50 p-2 rounded-lg border border-emerald-200">
+                <div class="text-[10px] text-emerald-700 uppercase">Unit</div>
+                <div class="text-sm font-mono text-emerald-800 mt-1">${selected.unit}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card overflow-hidden">
+            <div class="px-4 py-3 border-b border-ink-200">
+              <h3 class="font-semibold text-ink-800">Entered Engineering Elements</h3>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="data-table">
+                <thead>
+                  <tr><th>Element ID</th><th>Master Ref</th><th>Grid</th><th>Dims</th><th>Calc. Qty</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  ${ENG_ELEMENTS.map(e => `
+                    <tr>
+                      <td class="font-mono text-xs font-semibold text-brand-700">${e.elemId}</td>
+                      <td class="text-xs text-ink-500">${e.p1Code}</td>
+                      <td class="text-xs">${e.gridX}-${e.gridY}</td>
+                      <td class="text-xs font-mono text-ink-600">${Object.entries(e.dims).map(([k,v])=>`${v}`).join(' × ')}</td>
+                      <td class="font-mono font-semibold">${e.calcQty.toFixed(3)} ${e.unit}</td>
+                      <td>${statusBadge(e.status)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+window.changeBimSelect = function(val) {
+  state.selectedBimP1 = val;
+  render();
+  refreshIcons();
+}
+
+/* ----------------------- VIEW: QTO ----------------------- */
+function viewQTO() {
+  // Aggregate by type
+  const agg = ENG_ELEMENTS.reduce((acc, e) => {
+    const key = e.p1Code;
+    if(!acc[key]) acc[key] = { code: e.p1Code, unit: e.unit, qty: 0, count: 0 };
+    acc[key].qty += e.calcQty;
+    acc[key].count++;
+    return acc;
+  }, {});
+  
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="card p-5">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Total Calculated Volume</div>
+        <div class="font-display text-3xl font-bold text-brand-700">${Object.values(agg).reduce((s,i)=>s+i.qty,0).toFixed(3)} m³</div>
+        <div class="text-xs text-ink-500 mt-2">From ${ENG_ELEMENTS.length} engineering elements</div>
+      </div>
+      <div class="card p-5">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Pending Calculation</div>
+        <div class="font-display text-3xl font-bold text-amber-600">${ENG_ELEMENTS.filter(e=>e.status==='Draft').length}</div>
+        <div class="text-xs text-ink-500 mt-2">Elements awaiting dimension input</div>
+      </div>
+      <div class="card p-5">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Approved for BOQ</div>
+        <div class="font-display text-3xl font-bold text-emerald-600">${ENG_ELEMENTS.filter(e=>e.status==='Calculated').length}</div>
+        <div class="text-xs text-ink-500 mt-2">Ready for BOQ grouping</div>
+      </div>
+    </div>
+    
+    <div class="card overflow-hidden mt-6">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <h3 class="font-semibold text-ink-800">Aggregated Quantity Take-Off</h3>
+        <button class="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 flex items-center gap-1.5" onclick="toast('Sent to BOQ Builder')">
+          <i data-lucide="send" class="w-3.5 h-3.5"></i> Push to BOQ
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr><th>Master Element</th><th>Instances</th><th>Total Qty</th><th>Unit</th><th>Traceability</th></tr>
+          </thead>
+          <tbody>
+            ${Object.values(agg).map(a => `
+              <tr>
+                <td class="font-medium text-ink-800">${a.code}</td>
+                <td class="font-mono">${a.count} EA</td>
+                <td class="font-mono font-semibold text-brand-700">${a.qty.toFixed(3)}</td>
+                <td><span class="chip cat-std">${a.unit}</span></td>
+                <td><span class="chip cat-qto">Linked to Drawings</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: BOQ BUILDER ----------------------- */
+function viewBOQ() {
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <!-- BOQ Tree -->
+      <div class="card p-4 lg:col-span-1 h-fit">
+        <h3 class="font-semibold text-ink-800 mb-3 text-sm">BOQ Hierarchy</h3>
+        <div class="space-y-1 text-sm">
+          <div class="tree-item selected"><i data-lucide="folder-open" class="w-4 h-4"></i> 01. Preliminaries</div>
+          <div class="tree-item pl-4"><i data-lucide="file" class="w-3 h-3"></i> 01.01 Mobilization</div>
+          <div class="tree-item"><i data-lucide="folder" class="w-4 h-4"></i> 02. Site Prep</div>
+          <div class="tree-item"><i data-lucide="folder-open" class="w-4 h-4"></i> 03. Foundation</div>
+          <div class="tree-item pl-4"><i data-lucide="file" class="w-3 h-3"></i> 03.01 Piling</div>
+          <div class="tree-item pl-4"><i data-lucide="file" class="w-3 h-3"></i> 03.02 Pile Caps</div>
+          <div class="tree-item"><i data-lucide="folder" class="w-4 h-4"></i> 04. Structure</div>
+          <div class="tree-item"><i data-lucide="folder" class="w-4 h-4"></i> 05. Architectural</div>
+        </div>
+      </div>
+
+      <!-- BOQ Table -->
+      <div class="lg:col-span-3 card overflow-hidden">
+        <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+          <div>
+            <h3 class="font-semibold text-ink-800">Section 01 - Preliminaries & Foundation</h3>
+            <p class="text-xs text-ink-500">Items linked to QTO engine are read-only</p>
+          </div>
+          <button class="text-xs text-brand-600 flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Add Manual Item</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr><th>Code</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Amount</th><th>Source</th></tr>
+            </thead>
+            <tbody>
+              ${BOQ_ITEMS.map(b => `
+                <tr>
+                  <td class="font-mono text-xs">${b.code}</td>
+                  <td class="font-medium text-ink-800">${b.desc}</td>
+                  <td><span class="chip cat-std">${b.unit}</span></td>
+                  <td class="font-mono">${b.qty.toLocaleString()}</td>
+                  <td class="font-mono">${b.rate.toLocaleString()}</td>
+                  <td class="font-mono font-semibold text-ink-900">${b.amount.toLocaleString()}</td>
+                  <td>
+                    ${b.linked ? `<span class="chip cat-boq"><i data-lucide="link" class="w-3 h-3"></i> QTO Engine</span>` : `<span class="chip cat-std">Manual Entry</span>`}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="px-4 py-3 bg-ink-50 border-t border-ink-200 flex justify-end gap-4 text-sm">
+          <div class="font-medium text-ink-600">Subtotal:</div>
+          <div class="font-mono font-bold text-brand-700 text-lg">${BOQ_ITEMS.reduce((s,i)=>s+i.amount,0).toLocaleString()} BDT</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: AI EXTRACT ----------------------- */
+function viewAIExtract() {
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Mock Drawing Viewer -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-ink-800">Source Document: STR-FND-001 Rev B</h3>
+          <span class="chip cat-ai"><i data-lucide="cpu" class="w-3 h-3"></i> AI Processed</span>
+        </div>
+        <div class="relative bg-ink-100 rounded-lg h-80 overflow-hidden border border-ink-200 flex items-center justify-center">
+          <!-- Mock SVG Drawing -->
+          <svg width="100%" height="100%" viewBox="0 0 400 300">
+            <defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#cbd5e1" stroke-width="0.5"/></pattern></defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+            <text x="30" y="30" fill="#0f172a" font-size="8" font-family="monospace">X1</text>
+            <text x="180" y="30" fill="#0f172a" font-size="8" font-family="monospace">X2</text>
+            <text x="10" y="100" fill="#0f172a" font-size="8" font-family="monospace">Y1</text>
+            <text x="10" y="200" fill="#0f172a" font-size="8" font-family="monospace">Y2</text>
+            
+            <!-- Mock bounding boxes from AI -->
+            <rect x="40" y="80" width="40" height="40" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="4"/>
+            <text x="45" y="75" fill="#d97706" font-size="8" font-weight="bold">P1 (500mm)</text>
+            
+            <rect x="40" y="180" width="40" height="40" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="4"/>
+            <text x="45" y="175" fill="#d97706" font-size="8" font-weight="bold">P2 (500mm)</text>
+            
+            <rect x="190" y="80" width="40" height="40" fill="none" stroke="#d97706" stroke-width="2" stroke-dasharray="4"/>
+            <text x="195" y="75" fill="#d97706" font-size="8" font-weight="bold">P3 (600mm)</text>
+          </svg>
+        </div>
+        <div class="mt-3 text-xs text-ink-600">
+          <div class="flex items-center gap-2 mb-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Bounding boxes indicate detected elements</div>
+          <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Text extraction confidence > 92%</div>
+        </div>
+      </div>
+
+      <!-- Proposed Records -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-semibold text-ink-800">AI Proposed Engineering Records</h3>
+          <button class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700" onclick="toast('Approved and added to BIM Entry list')">Approve All</button>
+        </div>
+        <div class="space-y-3">
+          ${[
+            {id:'P1-X1Y1', dim:'D=500mm, L=13.5m', match:'BIM-FND-001', conf:98},
+            {id:'P1-X1Y2', dim:'D=500mm, L=13.5m', match:'BIM-FND-001', conf:96},
+            {id:'P1-X2Y1', dim:'D=600mm, L=14.0m', match:'BIM-FND-001', conf:94},
+          ].map(p => `
+            <div class="border border-ink-200 rounded-lg p-3 hover:border-brand-300 transition-colors">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <div class="font-mono text-xs text-brand-700">${p.id}</div>
+                  <div class="text-sm font-medium text-ink-800 mt-1">Mapped to: ${p.match}</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-xs text-ink-500">Confidence</div>
+                  <div class="text-sm font-bold text-emerald-600">${p.conf}%</div>
+                </div>
+              </div>
+              <div class="text-xs font-mono text-ink-600 bg-ink-50 p-2 rounded mt-1">Extracted Dims: ${p.dim}</div>
+              <div class="flex gap-2 mt-3">
+                <button class="flex-1 px-3 py-1.5 text-xs font-medium bg-brand-50 text-brand-700 rounded hover:bg-brand-100">Review</button>
+                <button class="flex-1 px-3 py-1.5 text-xs font-medium bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100" onclick="toast('Record approved')">Approve</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: APPROVALS ----------------------- */
+function viewApprovals() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200">
+        <h3 class="font-semibold text-ink-800">Engineering & BOQ Approval Queue</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr><th>Item</th><th>Type</th><th>Submitted By</th><th>Date</th><th>Status</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            ${[
+              {item:'STR-FND-001 Rev B', type:'Drawing Revision', by:'M. Fernando', date:'2024-01-16', st:'Pending Review'},
+              {item:'P1-X1Y1 QTO Calc', type:'Quantity Take-Off', by:'K. Senanayake', date:'2024-01-17', st:'Pending Review'},
+              {item:'BOQ Section 03', type:'BOQ Grouping', by:'K. Senanayake', date:'2024-01-18', st:'Pending Review'},
+              {item:'AI Extract Batch 1', type:'AI Proposal', by:'AI Engine', date:'2024-01-19', st:'Draft'},
+            ].map((a,i) => `
+              <tr>
+                <td class="font-medium text-ink-800">${a.item}</td>
+                <td><span class="chip cat-std">${a.type}</span></td>
+                <td class="text-xs">${a.by}</td>
+                <td class="text-xs font-mono">${a.date}</td>
+                <td>${statusBadge(a.st)}</td>
+                <td>
+                  <div class="flex gap-1">
+                    <button class="px-2 py-1 text-[11px] bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100" onclick="toast('Approved')">Approve</button>
+                    <button class="px-2 py-1 text-[11px] bg-red-50 text-red-700 rounded hover:bg-red-100" onclick="toast('Rejected')">Reject</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: PHASE 1 INTEGRATION ----------------------- */
+function viewPhase1() {
+  return `
+    <div class="card p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center"><i data-lucide="database" class="w-5 h-5 text-brand-700"></i></div>
+        <div>
+          <h3 class="font-semibold text-ink-800">Phase 1 Master Database Integration</h3>
+          <p class="text-xs text-ink-500">Read-only connection to Construction Master Database API</p>
+        </div>
+      </div>
+      <div class="bg-ink-50 border border-ink-200 rounded-lg p-3 mb-4 flex items-center gap-2">
+        <span class="pulse-dot"></span>
+        <span class="text-sm font-medium text-ink-700">Connection Active</span>
+        <span class="text-xs text-ink-500 ml-4">Last Sync: 2 mins ago</span>
+      </div>
+      <p class="text-sm text-ink-600 mb-4">Available Master BIM Objects for Engineering Entry:</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        ${P1_BIM.map(b => `
+          <div class="border border-ink-200 rounded-lg p-3 hover:border-brand-300 cursor-pointer" onclick="navigateTo('bim_entry'); changeBimSelect('${b.id}')">
+            <div class="font-mono text-xs text-ink-500">${b.code}</div>
+            <div class="font-semibold text-ink-800 text-sm mt-1">${b.name}</div>
+            <div class="mt-2 flex justify-between items-center">
+              <span class="chip cat-bim">${b.unit}</span>
+              <span class="text-[10px] font-mono text-ink-400">v1.0</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- MODAL ----------------------- */
+window.openDrawingDetail = function(id) {
+  const d = DRAWINGS.find(x=>x.id===id);
+  el('modalContent').innerHTML = `
+    <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+      <div>
+        <div class="font-mono text-xs text-ink-500">${d.code} · Rev ${d.rev}</div>
+        <h2 class="font-display text-xl font-bold text-ink-900">${d.title}</h2>
+      </div>
+      <button onclick="closeModal()" class="text-ink-400 hover:text-ink-700"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="p-6">
+      <div class="aspect-video bg-ink-100 rounded-lg flex items-center justify-center border border-ink-200">
+        <img src="https://placehold.co/600x400/e2e8f0/64748b?text=Drawing+Preview+${d.code}" alt="Drawing Preview" class="rounded-lg">
+      </div>
+      <div class="grid grid-cols-3 gap-4 mt-4">
+        <div><div class="field-label">Discipline</div><div class="text-sm">${d.discipline}</div></div>
+        <div><div class="field-label">Status</div><div>${statusBadge(d.status)}</div></div>
+        <div><div class="field-label">Linked Elements</div><div class="text-sm font-mono">${d.linkedElements} items</div></div>
+      </div>
+    </div>
+    <div class="px-6 py-3 border-t border-ink-200 flex justify-end bg-ink-50">
+      <button onclick="closeModal()" class="px-4 py-1.5 text-sm border border-ink-200 rounded-lg text-ink-700 hover:bg-ink-100">Close</button>
+    </div>
+  `;
+  el('modal').classList.remove('hidden');
+  el('modal').classList.add('flex');
+  refreshIcons();
+};
+
+window.closeModal = function() {
+  el('modal').classList.add('hidden');
+  el('modal').classList.remove('flex');
+};
+
+/* ----------------------- NAVIGATION ----------------------- */
+window.navigateTo = function(view) {
+  state.currentView = view;
+  const v = VIEWS[view] || { title: view, sub: '' };
+  el('pageTitle').textContent = v.title;
+  el('pageSubtitle').textContent = v.sub;
+  $$('.sidebar-link').forEach(l => l.classList.toggle('active', l.dataset.view === view));
+  render();
+  refreshIcons();
+};
+
+/* ----------------------- RENDER ----------------------- */
+function render() {
+  const view = state.currentView;
+  const map = {
+    dashboard: viewDashboard,
+    drawings: viewDrawings,
+    grids: viewGrids,
+    bim_entry: viewBimEntry,
+    qto: viewQTO,
+    boq: viewBOQ,
+    ai_extract: viewAIExtract,
+    approvals: viewApprovals,
+    phase1: viewPhase1,
+  };
+  el('app').innerHTML = (map[view] || viewDashboard)();
+  refreshIcons();
+  el('app').scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ----------------------- INIT ----------------------- */
+function init() {
+  $$('.sidebar-link').forEach(link => {
+    link.addEventListener('click', e => { e.preventDefault(); navigateTo(link.dataset.view); });
+  });
+  el('modal').addEventListener('click', e => { if (e.target === el('modal')) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  navigateTo('dashboard');
+}
+
+init();
+</script>
+</body>
+</html>

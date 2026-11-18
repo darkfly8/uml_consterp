@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ConstMaster Phase 5 — Executive MIS & Portfolio Control</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          display: ['Space Grotesk', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          ink: { 50:'#f8fafc', 100:'#f1f5f9', 200:'#e2e8f0', 300:'#cbd5e1', 400:'#94a3b8', 500:'#64748b', 600:'#475569', 700:'#334155', 800:'#1e293b', 900:'#0f172a', 950:'#020617' },
+          brand: { 50:'#eff6ff', 100:'#dbeafe', 200:'#bfdbfe', 300:'#93c5fd', 400:'#60a5fa', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8', 800:'#1e40af', 900:'#1e3a8a', 950:'#172554' },
+          slate: { 500:'#64748b', 600:'#475569', 700:'#334155' },
+          amber: { 500:'#f59e0b', 600:'#d97706' },
+          emerald: { 500:'#10b981', 600:'#059669' }
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --ink-1: #0f172a;
+    --ink-2: #475569;
+    --ink-3: #94a3b8;
+    --brand: #1d4ed8; /* Deep Blue for Executive */
+  }
+  html, body { background: var(--bg); color: var(--ink-1); font-family: 'Inter', sans-serif; }
+  * { -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .sidebar-link { transition: all .15s ease; }
+  .sidebar-link:hover { background: rgba(255,255,255,.06); }
+  .sidebar-link.active { background: rgba(37,99,235,.2); color: #93c5fd; box-shadow: inset 2px 0 0 #3b82f6; }
+  .sidebar-link.active .icon-wrap { color: #93c5fd; }
+
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05); }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.02em; }
+
+  .badge-healthy { background:#dcfce7; color:#166534; }
+  .badge-watch   { background:#fef3c7; color:#92400e; }
+  .badge-risk    { background:#fee2e2; color:#991b1b; }
+  .badge-critical{ background:#ef4444; color:#ffffff; }
+  .badge-approved{ background:#dcfce7; color:#166534; }
+  .badge-pending { background:#dbeafe; color:#1e40af; }
+
+  .cat-exec  { background:#dcfce7; color:#166534; }
+  .cat-fin   { background:#cffafe; color:#155e75; }
+  .cat-biz   { background:#ede9fe; color:#5b21b6; }
+  .cat-std   { background:#e2e8f0; color:#334155; }
+
+  table.data-table { border-collapse: collapse; width:100%; font-size:13px; }
+  table.data-table th { text-align:left; padding:12px; background:#f8fafc; color:#475569; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid var(--border); position:sticky; top:0; }
+  table.data-table td { padding:12px; border-bottom:1px solid #f1f5f9; color:#1e293b; }
+  table.data-table tr:hover td { background:#f8fafc; }
+
+  .field-label { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; font-weight:600; margin-bottom:4px; display:block; }
+  
+  .modal-backdrop { background:rgba(15,23,42,.55); backdrop-filter:blur(4px); }
+  .pulse-dot { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 0 rgba(34,197,94,.5); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)} 70%{box-shadow:0 0 0 10px rgba(34,197,94,0)} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(148,163,184,.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .gradient-text { background:linear-gradient(135deg,#1d4ed8,#3b82f6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside class="w-64 bg-ink-900 text-ink-100 flex-shrink-0 flex flex-col fixed lg:relative h-screen z-30 print:hidden" id="sidebar">
+    <div class="px-5 py-4 flex items-center gap-3 border-b border-ink-800">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-600 to-brand-700 flex items-center justify-center shadow-lg">
+        <i data-lucide="briefcase" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="font-display font-bold text-white text-lg leading-tight">ExecMIS</div>
+        <div class="text-[10px] text-ink-400 tracking-widest uppercase">Phase 5 · Portfolio Control</div>
+      </div>
+    </div>
+
+    <div class="px-4 py-3 border-b border-ink-800">
+      <div class="text-[10px] text-ink-500 uppercase tracking-widest font-semibold mb-1">Business Unit</div>
+      <div class="bg-ink-800 rounded-lg p-2 flex items-center gap-2">
+        <i data-lucide="building-2" class="w-4 h-4 text-brand-400"></i>
+        <div class="flex-1 min-w-0">
+          <div class="text-xs font-medium text-white truncate">ConstCorp Holdings</div>
+          <div class="text-[10px] text-ink-400 truncate">Global Operations</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 text-sm" id="nav">
+      <div class="px-3 pt-2 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Executive View</div>
+      <a data-view="dashboard" class="sidebar-link active flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="layout-dashboard" class="w-4 h-4"></i></span> Exec Dashboard
+      </a>
+      <a data-view="portfolio" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="layers" class="w-4 h-4"></i></span> Project Portfolio
+      </a>
+      <a data-view="financials" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="trending-up" class="w-4 h-4"></i></span> Financial Health
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Strategy & Risk</div>
+      <a data-view="business_dev" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="rocket" class="w-4 h-4"></i></span> Tender Pipeline
+      </a>
+      <a data-view="risks" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="alert-octagon" class="w-4 h-4"></i></span> Risk Register
+      </a>
+      <a data-view="ai" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="sparkles" class="w-4 h-4"></i></span> AI Assistant
+      </a>
+      
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">System</div>
+      <a data-view="integration" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="database" class="w-4 h-4"></i></span> Data Sync Status
+      </a>
+    </nav>
+
+    <div class="border-t border-ink-800 p-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-brand-600 flex items-center justify-center font-semibold text-white text-sm">MD</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-white truncate">R. Wickramasinghe</div>
+          <div class="text-[10px] text-ink-400 flex items-center gap-1"><span class="pulse-dot"></span> Managing Director</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 lg:ml-0 min-w-0 flex flex-col">
+    <header class="bg-white border-b border-ink-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
+      <div class="flex items-center gap-3">
+        <button class="lg:hidden text-ink-600" id="menuBtn"><i data-lucide="menu" class="w-5 h-5"></i></button>
+        <div>
+          <h1 id="pageTitle" class="font-display text-lg font-semibold text-ink-900">Executive Dashboard</h1>
+          <p id="pageSubtitle" class="text-xs text-ink-500">Consolidated company performance & portfolio health</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-ink-50 rounded-lg text-xs text-ink-600 font-mono">
+          <span class="pulse-dot"></span> Live Data <span class="text-ink-400 ml-1">(Synced 5m ago)</span>
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium border border-ink-200 rounded-lg text-ink-700 hover:bg-ink-50 flex items-center gap-1.5"><i data-lucide="download" class="w-3.5 h-3.5"></i> Export Report</button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-6 overflow-x-hidden" id="app"></main>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden bg-ink-900 text-white px-4 py-3 rounded-lg shadow-xl text-sm flex items-center gap-2">
+  <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+  <span id="toastMsg">Done</span>
+</div>
+
+<script>
+/* =========================================================================
+   CONSTMASTER PHASE 5 — EXECUTIVE MIS & PORTFOLIO CONTROL
+   Read-only analytics layer over Phases 1-4.
+   ========================================================================= */
+
+/* ----------------------- MOCK CONSOLIDATED DATA ----------------------- */
+const PORTFOLIO = [
+  { id:'p1', code:'PRJ-FLC-2024', name:'Fish Landing Centre', client:'Govt. Fisheries', contractVal:4.85, budget:4.20, actual:1.20, forecast:4.15, progress:45, health:'Healthy', margin:14.4 },
+  { id:'p2', code:'PRJ-MHT-2023', name:'Marina Heights Tower', client:'Private Developer', contractVal:12.50, budget:11.80, actual:8.50, forecast:12.10, progress:78, health:'At Risk', margin:3.2 },
+  { id:'p3', code:'PRJ-N4H-2023', name:'Highway N4 Expansion', client:'Roads Authority', contractVal:8.20, budget:7.90, actual:5.00, forecast:8.30, progress:62, health:'Critical', margin:-1.2 },
+  { id:'p4', code:'PRJ-GRV-2024', name:'River Protection Works', client:'Disaster Mgmt', contractVal:3.10, budget:2.80, actual:0.80, forecast:2.75, progress:25, health:'Watch', margin:11.2 },
+];
+
+const TENDERS = [
+  { id:'t1', code:'TND-2024-09', name:'Port Marine Terminal', client:'Port Authority', estVal:15.0, prob:40, status:'Bid Submitted', closeDate:'2024-02-28' },
+  { id:'t2', code:'TND-2024-10', name:'Central Bus Station', client:'Municipal Council', estVal:4.2, prob:60, status:'Under Review', closeDate:'2024-03-10' },
+  { id:'t3', code:'TND-2024-11', name:'Industrial Warehousing', client:'LogiCorp', estVal:6.8, prob:25, status:'Preparing Bid', closeDate:'2024-03-20' },
+];
+
+const RISKS = [
+  { id:'r1', project:'Highway N4', risk:'Material Price Escalation (Bitumen)', impact:'High', prob:'High', score:9, status:'Active' },
+  { id:'r2', project:'Marina Heights', risk:'Subcontractor Delay (MEP Works)', impact:'Medium', prob:'High', score:6, status:'Active' },
+  { id:'r3', project:'Fish Landing Centre', risk:'Weather Delay (Monsoon)', impact:'Low', prob:'High', score:3, status:'Mitigated' },
+];
+
+const ACTIONS = [
+  { id:'a1', dec:'Board Decision 24-01', subject:'Approve emergency budget for N4 Highway', owner:'MD', due:'2024-02-05', status:'Overdue' },
+  { id:'a2', dec:'Exec Meeting 24-02', subject:'Review Marina Heights subcontractor', owner:'COO', due:'2024-02-10', status:'Open' },
+];
+
+/* ----------------------- STATE & ROUTER ----------------------- */
+const state = {
+  currentView: 'dashboard'
+};
+
+const VIEWS = {
+  dashboard:   { title:'Executive Dashboard', sub:'Consolidated company performance & portfolio health' },
+  portfolio:   { title:'Project Portfolio',   sub:'Multi-project comparison and operational status' },
+  financials:  { title:'Financial Health',    sub:'Cash flow, profitability and cost variance analysis' },
+  business_dev:{ title:'Tender Pipeline',     sub:'Business development and weighted contract opportunities' },
+  risks:       { title:'Risk Register',        sub:'Enterprise-wide risk matrix and mitigation tracking' },
+  ai:          { title:'AI Assistant',         sub:'Natural language queries on verified portfolio data' },
+  integration: { title:'Data Sync Status',    sub:'Synchronization health from operational phases' },
+};
+
+/* ----------------------- HELPERS ----------------------- */
+function el(id) { return document.getElementById(id); }
+function $(sel, ctx=document) { return ctx.querySelector(sel); }
+function $$(sel, ctx=document) { return [...ctx.querySelectorAll(sel)]; }
+
+function healthBadge(status) {
+  const map = { 'Healthy':'badge-healthy', 'Watch':'badge-watch', 'At Risk':'badge-risk', 'Critical':'badge-critical' };
+  return `<span class="chip ${map[status] || 'badge-watch'}">${status}</span>`;
+}
+
+function fmtCur(val) {
+  return `${val.toFixed(2)}M`;
+}
+
+function toast(msg) {
+  el('toastMsg').textContent = msg;
+  el('toast').classList.remove('hidden');
+  setTimeout(()=>el('toast').classList.add('hidden'), 2200);
+}
+
+function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+
+/* ----------------------- VIEW: DASHBOARD ----------------------- */
+function viewDashboard() {
+  const totalContract = PORTFOLIO.reduce((s,p)=>s+p.contractVal,0);
+  const totalForecast = PORTFOLIO.reduce((s,p)=>s+p.forecast,0);
+  const totalProfit = totalContract - totalForecast;
+  const weightedPipeline = TENDERS.reduce((s,t)=>s+(t.estVal*t.prob/100),0);
+  const criticalProjects = PORTFOLIO.filter(p=>p.health==='Critical').length;
+
+  return `
+    <div class="space-y-6">
+      <!-- Hero -->
+      <div class="card overflow-hidden relative">
+        <div class="absolute inset-0 grid-bg opacity-50"></div>
+        <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-brand-50 to-transparent"></div>
+        <div class="relative p-6 flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="chip cat-fin">Phase 5</span>
+              <span class="chip cat-biz">Executive MIS</span>
+              <span class="chip badge-approved">Read-Only Mode</span>
+            </div>
+            <h2 class="font-display text-2xl font-bold text-ink-900">Business Portfolio Overview</h2>
+            <p class="text-sm text-ink-600 mt-1 max-w-2xl">Consolidated analytics from Phase 1 (Master Data), Phase 2 (BOQ), Phase 3 (Execution) & Phase 4 (Commercial).</p>
+          </div>
+          <div class="flex gap-8 items-center">
+            <div class="text-center">
+              <div class="text-3xl font-bold gradient-text">${fmtCur(totalContract)}</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Active Contract Value</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-emerald-600">${fmtCur(totalProfit)}</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Forecast Profit</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-violet-600">${fmtCur(weightedPipeline)}</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Weighted Pipeline</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center"><i data-lucide="layers" class="w-5 h-5 text-blue-600"></i></div>
+            <span class="text-xs font-mono text-ink-400">Active: ${PORTFOLIO.length}</span>
+          </div>
+          <div class="font-display text-2xl font-bold text-ink-900">${PORTFOLIO.length}</div>
+          <div class="text-xs text-ink-500 mt-1">Projects in Execution</div>
+          <div class="mt-3 pt-3 border-t border-ink-100 flex gap-2 text-xs">
+            <span class="text-emerald-600 font-semibold">${PORTFOLIO.filter(p=>p.health==='Healthy').length} Healthy</span>
+            <span class="text-ink-300">|</span>
+            <span class="text-red-600 font-semibold">${criticalProjects} Critical</span>
+          </div>
+        </div>
+        
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center"><i data-lucide="trending-up" class="w-5 h-5 text-emerald-600"></i></div>
+            <span class="text-xs font-mono text-ink-400">Target: 15.0%</span>
+          </div>
+          <div class="font-display text-2xl font-bold text-ink-900">${((totalProfit/totalContract)*100).toFixed(1)}%</div>
+          <div class="text-xs text-ink-500 mt-1">Avg Forecast Margin</div>
+          <div class="mt-3 pt-3 border-t border-ink-100 text-xs">
+            <span class="text-ink-600">Best: FLC (${14.4}%)</span>
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center"><i data-lucide="alert-octagon" class="w-5 h-5 text-amber-600"></i></div>
+            <span class="text-xs font-mono text-ink-400">High Impact: ${RISKS.filter(r=>r.impact==='High').length}</span>
+          </div>
+          <div class="font-display text-2xl font-bold text-ink-900">${RISKS.length}</div>
+          <div class="text-xs text-ink-500 mt-1">Active Enterprise Risks</div>
+          <div class="mt-3 pt-3 border-t border-ink-100 text-xs">
+            <span class="text-red-600 font-semibold">Requires Exec Attention</span>
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center"><i data-lucide="rocket" class="w-5 h-5 text-violet-600"></i></div>
+            <span class="text-xs font-mono text-ink-400">Bidding: ${TENDERS.length}</span>
+          </div>
+          <div class="font-display text-2xl font-bold text-ink-900">${fmtCur(TENDERS.reduce((s,t)=>s+t.estVal,0))}</div>
+          <div class="text-xs text-ink-500 mt-1">Tender Pipeline Value</div>
+          <div class="mt-3 pt-3 border-t border-ink-100 text-xs">
+            <span class="text-ink-600">Next Close: ${TENDERS[0].closeDate}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Portfolio Health & Actions -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-ink-800">Portfolio Health Matrix</h3>
+            <button onclick="navigateTo('portfolio')" class="text-xs text-brand-600 hover:underline">View Details →</button>
+          </div>
+          <div class="space-y-4">
+            ${PORTFOLIO.map(p => {
+              const profitStatus = p.forecast > p.contractVal ? 'text-red-600' : 'text-emerald-600';
+              return `
+                <div class="flex items-center gap-4 p-3 border border-ink-200 rounded-lg hover:bg-ink-50">
+                  <div class="w-2 h-12 rounded-full ${p.health==='Healthy'?'bg-emerald-500':p.health==='Watch'?'bg-amber-500':'bg-red-500'}"></div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex justify-between mb-1">
+                      <span class="font-medium text-ink-800 text-sm truncate">${p.name}</span>
+                      <span class="text-xs font-mono ${profitStatus}">Margin: ${p.margin}%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-ink-100 rounded-full overflow-hidden">
+                      <div class="bg-brand-600 h-full rounded-full" style="width:${p.progress}%"></div>
+                    </div>
+                    <div class="flex justify-between mt-1 text-[10px] text-ink-500">
+                      <span>Progress: ${p.progress}%</span>
+                      <span>Contract: ${fmtCur(p.contractVal)}</span>
+                    </div>
+                  </div>
+                  ${healthBadge(p.health)}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-ink-800">Exec Decisions & Actions</h3>
+            <i data-lucide="git-pull-request" class="w-4 h-4 text-ink-400"></i>
+          </div>
+          <div class="space-y-3">
+            ${ACTIONS.map(a => `
+              <div class="border border-ink-200 rounded-lg p-3 ${a.status==='Overdue'?'border-red-300 bg-red-50':''}">
+                <div class="text-[10px] font-mono text-ink-500 mb-1">${a.dec}</div>
+                <div class="text-sm font-medium text-ink-800 mb-2">${a.subject}</div>
+                <div class="flex justify-between items-center text-xs">
+                  <span class="text-ink-600">Owner: ${a.owner}</span>
+                  <span class="font-mono ${a.status==='Overdue'?'text-red-600 font-bold':'text-ink-500'}">Due: ${a.due}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <button class="w-full mt-4 px-3 py-2 text-xs font-medium border border-ink-200 rounded-lg text-ink-700 hover:bg-ink-50">View All Actions</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: PORTFOLIO ----------------------- */
+function viewPortfolio() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-ink-800">Active Project Portfolio</h3>
+          <p class="text-xs text-ink-500">Comparing operational progress and financial health</p>
+        </div>
+        <div class="flex gap-2">
+          <button class="tab-btn active">All Projects</button>
+          <button class="tab-btn">Critical Only</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Project Code</th><th>Name</th><th>Client</th><th>Contract Val</th><th>Progress</th><th>Forecast Margin</th><th>Health</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${PORTFOLIO.map(p => `
+              <tr class="cursor-pointer" onclick="toast('Opening ${p.name} workspace')">
+                <td class="font-mono text-xs text-brand-700">${p.code}</td>
+                <td class="font-medium text-ink-800">${p.name}</td>
+                <td class="text-xs text-ink-600">${p.client}</td>
+                <td class="font-mono font-semibold">${fmtCur(p.contractVal)}</td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="w-24 h-1.5 bg-ink-100 rounded-full overflow-hidden">
+                      <div class="bg-brand-600 h-full rounded-full" style="width:${p.progress}%"></div>
+                    </div>
+                    <span class="text-xs font-mono text-ink-600">${p.progress}%</span>
+                  </div>
+                </td>
+                <td class="font-mono ${p.margin>0?'text-emerald-600':'text-red-600'} font-semibold">${p.margin}%</td>
+                <td>${healthBadge(p.health)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: FINANCIALS ----------------------- */
+function viewFinancials() {
+  const totalContract = PORTFOLIO.reduce((s,p)=>s+p.contractVal,0);
+  const totalBudget = PORTFOLIO.reduce((s,p)=>s+p.budget,0);
+  const totalActual = PORTFOLIO.reduce((s,p)=>s+p.actual,0);
+  const totalForecast = PORTFOLIO.reduce((s,p)=>s+p.forecast,0);
+  
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="card p-4 border-l-4 border-brand-600">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Total Contract Value</div>
+        <div class="font-display text-xl font-bold text-ink-900">${fmtCur(totalContract)}</div>
+      </div>
+      <div class="card p-4 border-l-4 border-amber-500">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Approved Budget</div>
+        <div class="font-display text-xl font-bold text-ink-900">${fmtCur(totalBudget)}</div>
+      </div>
+      <div class="card p-4 border-l-4 border-red-500">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Actual Cost to Date</div>
+        <div class="font-display text-xl font-bold text-ink-900">${fmtCur(totalActual)}</div>
+      </div>
+      <div class="card p-4 border-l-4 border-violet-500">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Forecast Final Cost</div>
+        <div class="font-display text-xl font-bold text-ink-900">${fmtCur(totalForecast)}</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card p-5">
+        <h3 class="font-semibold text-ink-800 mb-4">Cost Overrun Analysis</h3>
+        <div class="space-y-3">
+          ${PORTFOLIO.map(p => {
+            const variance = p.budget - p.forecast;
+            const isOver = variance < 0;
+            const pct = (Math.abs(variance) / p.budget * 100).toFixed(0);
+            return `
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-ink-800 font-medium">${p.name}</span>
+                  <span class="font-mono ${isOver?'text-red-600':'text-emerald-600'}">${isOver?'Over':'Under'} by ${pct}%</span>
+                </div>
+                <div class="w-full h-2.5 bg-ink-100 rounded-full overflow-hidden flex">
+                  <div class="${isOver?'bg-red-500':'bg-emerald-500'} h-full" style="width:${Math.min(pct, 100)}%"></div>
+                </div>
+                <div class="text-[10px] text-ink-500 font-mono mt-1">Budget: ${fmtCur(p.budget)} → Forecast: ${fmtCur(p.forecast)}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="card p-5">
+        <h3 class="font-semibold text-ink-800 mb-4">Company Cash Flow (6-Month Forecast)</h3>
+        <div class="flex items-end justify-between h-48 gap-2 pt-4">
+          ${[
+            {m:'Feb', in:2.1, out:1.8}, {m:'Mar', in:3.5, out:2.9}, {m:'Apr', in:4.2, out:3.8},
+            {m:'May', in:3.8, out:4.1}, {m:'Jun', in:5.0, out:3.5}, {m:'Jul', in:4.5, out:4.0}
+          ].map(c => `
+            <div class="flex-1 flex flex-col items-center gap-1">
+              <div class="w-full flex justify-center gap-1 items-end h-full">
+                <div class="w-1/3 bg-emerald-400 rounded-t" style="height:${c.in*10}%"></div>
+                <div class="w-1/3 bg-red-400 rounded-t" style="height:${c.out*10}%"></div>
+              </div>
+              <div class="text-[10px] text-ink-500 font-mono">${c.m}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="mt-4 pt-3 border-t border-ink-100 flex justify-center gap-4 text-xs">
+          <div class="flex items-center gap-1"><span class="w-3 h-3 bg-emerald-400 rounded-sm"></span> Cash In (Receivables)</div>
+          <div class="flex items-center gap-1"><span class="w-3 h-3 bg-red-400 rounded-sm"></span> Cash Out (Payables)</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: BUSINESS DEV ----------------------- */
+function viewBusinessDev() {
+  const totalEst = TENDERS.reduce((s,t)=>s+t.estVal,0);
+  const totalWeighted = TENDERS.reduce((s,t)=>s+(t.estVal*t.prob/100),0);
+  
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="card p-4">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Pipeline Value</div>
+        <div class="font-display text-2xl font-bold text-ink-900">${fmtCur(totalEst)}</div>
+        <div class="text-xs text-ink-500 mt-1">${TENDERS.length} active opportunities</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Weighted Value</div>
+        <div class="font-display text-2xl font-bold text-violet-600">${fmtCur(totalWeighted)}</div>
+        <div class="text-xs text-ink-500 mt-1">Based on win probability</div>
+      </div>
+      <div class="card p-4">
+        <div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Next Deadline</div>
+        <div class="font-display text-2xl font-bold text-red-600">${TENDERS[0].closeDate}</div>
+        <div class="text-xs text-ink-500 mt-1">${TENDERS[0].name}</div>
+      </div>
+    </div>
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200">
+        <h3 class="font-semibold text-ink-800">Tender Pipeline</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead><tr><th>Code</th><th>Project</th><th>Client</th><th>Est. Value</th><th>Win Prob.</th><th>Weighted Val</th><th>Status</th></tr></thead>
+          <tbody>
+            ${TENDERS.map(t => `
+              <tr>
+                <td class="font-mono text-xs text-violet-700">${t.code}</td>
+                <td class="font-medium text-ink-800">${t.name}</td>
+                <td class="text-xs text-ink-600">${t.client}</td>
+                <td class="font-mono">${fmtCur(t.estVal)}</td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="w-16 h-1.5 bg-ink-100 rounded-full overflow-hidden">
+                      <div class="bg-brand-600 h-full rounded-full" style="width:${t.prob}%"></div>
+                    </div>
+                    <span class="text-xs font-mono text-ink-600">${t.prob}%</span>
+                  </div>
+                </td>
+                <td class="font-mono font-semibold text-emerald-600">${fmtCur(t.estVal*t.prob/100)}</td>
+                <td>${healthBadge(t.status==='Bid Submitted'?'Watch':t.status==='Preparing Bid'?'Critical':'Healthy')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: RISKS ----------------------- */
+function viewRisks() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200">
+        <h3 class="font-semibold text-ink-800">Enterprise Risk Register</h3>
+      </div>
+      <div class="p-5 grid grid-cols-3 gap-4 mb-4 border-b border-ink-100">
+        <div class="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+          <div class="font-display text-2xl font-bold text-red-600">${RISKS.filter(r=>r.impact==='High').length}</div>
+          <div class="text-xs text-red-700 uppercase tracking-wider mt-1">High Impact</div>
+        </div>
+        <div class="text-center p-4 bg-amber-50 rounded-lg border border-amber-200">
+          <div class="font-display text-2xl font-bold text-amber-600">${RISKS.filter(r=>r.impact==='Medium').length}</div>
+          <div class="text-xs text-amber-700 uppercase tracking-wider mt-1">Medium Impact</div>
+        </div>
+        <div class="text-center p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+          <div class="font-display text-2xl font-bold text-emerald-600">${RISKS.filter(r=>r.impact==='Low').length}</div>
+          <div class="text-xs text-emerald-700 uppercase tracking-wider mt-1">Low Impact</div>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead><tr><th>Project</th><th>Risk Description</th><th>Impact</th><th>Probability</th><th>Score (1-9)</th><th>Status</th></tr></thead>
+          <tbody>
+            ${RISKS.map(r => `
+              <tr>
+                <td class="font-medium text-ink-800">${r.project}</td>
+                <td class="text-sm text-ink-600">${r.risk}</td>
+                <td><span class="chip ${r.impact==='High'?'badge-critical':r.impact==='Medium'?'badge-watch':'badge-healthy'}">${r.impact}</span></td>
+                <td class="text-xs">${r.prob}</td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="w-16 h-2 bg-ink-100 rounded-full overflow-hidden">
+                      <div class="bg-red-500 h-full" style="width:${r.score*10}%"></div>
+                    </div>
+                    <span class="font-mono text-xs">${r.score}</span>
+                  </div>
+                </td>
+                <td>${healthBadge(r.status==='Active'?'At Risk':'Healthy')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: AI ASSISTANT ----------------------- */
+function viewAI() {
+  return `
+    <div class="card p-6 max-w-4xl mx-auto">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-brand-500 flex items-center justify-center shadow-lg">
+          <i data-lucide="sparkles" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <h3 class="font-semibold text-ink-800">Executive AI Assistant</h3>
+          <p class="text-xs text-ink-500">Ask questions on verified portfolio data. AI will not modify operational records.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4 mb-6 min-h-[200px]">
+        <!-- AI Message -->
+        <div class="flex gap-3">
+          <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0"><i data-lucide="cpu" class="w-4 h-4 text-brand-600"></i></div>
+          <div class="bg-ink-50 rounded-lg p-3 max-w-xl">
+            <p class="text-sm text-ink-800">Good morning, Mr. Wickramasinghe. Currently, your portfolio has <strong>4 active projects</strong> valued at <strong>28.65M</strong>. The forecast profit is <strong>3.05M</strong> (10.6% margin). However, the <strong>Highway N4 Expansion</strong> is currently critical with a -1.2% margin forecast due to bitumen price escalation.</p>
+            <p class="text-xs text-ink-500 mt-2 font-mono">Sources: Phase 4 Commercial, Phase 3 Execution</p>
+          </div>
+        </div>
+
+        <!-- User Message -->
+        <div class="flex gap-3 justify-end">
+          <div class="bg-brand-600 text-white rounded-lg p-3 max-w-md">
+            <p class="text-sm">Which projects have the highest material wastage currently?</p>
+          </div>
+        </div>
+
+        <!-- AI Response -->
+        <div class="flex gap-3">
+          <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0"><i data-lucide="cpu" class="w-4 h-4 text-brand-600"></i></div>
+          <div class="bg-ink-50 rounded-lg p-3 max-w-xl">
+            <p class="text-sm text-ink-800">Based on Phase 3 execution logs vs Phase 1 resource norms, the <strong>Marina Heights Tower</strong> is showing a 12% wastage on concrete (vs 5% allowable). This is primarily driven by MEP penetrations not coordinated in Phase 2 drawings.</p>
+            <p class="text-xs text-ink-500 mt-2 font-mono">Sources: Phase 3 Requisitions, Phase 1 Norms</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 border-t border-ink-200 pt-4">
+        <input type="text" placeholder="Ask about portfolio risks, cash flow, margins..." class="input-field flex-1" />
+        <button class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 flex items-center gap-1.5 text-sm font-medium" onclick="toast('Query sent to AI')">
+          <i data-lucide="send" class="w-4 h-4"></i> Send
+        </button>
+      </div>
+
+      <div class="mt-4 flex flex-wrap gap-2">
+        <span class="text-xs text-ink-500">Suggested:</span>
+        ${['What is our cash position next month?', 'Show critical risks', 'Which tenders close this week?'].map(q => `
+          <button class="px-3 py-1 text-xs bg-ink-50 text-ink-700 rounded-full hover:bg-ink-100 border border-ink-200">${q}</button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: INTEGRATION ----------------------- */
+function viewIntegration() {
+  return `
+    <div class="card p-6">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 rounded-lg bg-brand-100 flex items-center justify-center"><i data-lucide="database" class="w-5 h-5 text-brand-700"></i></div>
+        <div>
+          <h3 class="font-semibold text-ink-800">Data Synchronization Status</h3>
+          <p class="text-xs text-ink-500">Read-only snapshots retrieved from operational phases</p>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="border border-ink-200 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="pulse-dot"></span>
+            <span class="font-medium text-ink-800">Phase 1 & 2 Sync</span>
+          </div>
+          <div class="text-xs text-ink-600 space-y-2 font-mono">
+            <div>✓ Master Data & BOQ synced (12:00 AM)</div>
+            <div>✓ ${PORTFOLIO.length} project baselines retrieved</div>
+            <div>✓ Drawing revisions checked</div>
+          </div>
+        </div>
+
+        <div class="border border-ink-200 rounded-lg p-4">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="pulse-dot"></span>
+            <span class="font-medium text-ink-800">Phase 3 & 4 Sync</span>
+          </div>
+          <div class="text-xs text-ink-600 space-y-2 font-mono">
+            <div>✓ Execution progress synced (5m ago)</div>
+            <div>✓ Financial transactions aggregated (15m ago)</div>
+            <div>✓ Cash flow forecasts updated</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 bg-brand-50 rounded-lg p-4 border border-brand-200">
+        <h4 class="font-semibold text-brand-900 mb-2 text-sm flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4"></i> MIS Integrity Rules</h4>
+        <ul class="text-xs text-brand-800 space-y-1 list-disc list-inside">
+          <li>Phase 5 operates strictly on cached reporting snapshots to ensure fast dashboard performance.</li>
+          <li>Operational data cannot be edited from the Executive MIS.</li>
+          <li>Management actions taken here (e.g., "Approve Variation") are routed back to Phase 4 for execution.</li>
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- NAVIGATION ----------------------- */
+window.navigateTo = function(view) {
+  state.currentView = view;
+  const v = VIEWS[view] || { title: view, sub: '' };
+  el('pageTitle').textContent = v.title;
+  el('pageSubtitle').textContent = v.sub;
+  $$('.sidebar-link').forEach(l => l.classList.toggle('active', l.dataset.view === view));
+  render();
+  refreshIcons();
+};
+
+/* ----------------------- RENDER ----------------------- */
+function render() {
+  const view = state.currentView;
+  const map = {
+    dashboard: viewDashboard,
+    portfolio: viewPortfolio,
+    financials: viewFinancials,
+    business_dev: viewBusinessDev,
+    risks: viewRisks,
+    ai: viewAI,
+    integration: viewIntegration,
+  };
+  el('app').innerHTML = (map[view] || viewDashboard)();
+  refreshIcons();
+  el('app').scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ----------------------- INIT ----------------------- */
+function init() {
+  $$('.sidebar-link').forEach(link => {
+    link.addEventListener('click', e => { e.preventDefault(); navigateTo(link.dataset.view); });
+  });
+  navigateTo('dashboard');
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,2297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ConstMaster — Construction Master Database & BIM Library</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          display: ['Space Grotesk', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          ink: { 50:'#f8fafc', 100:'#f1f5f9', 200:'#e2e8f0', 300:'#cbd5e1', 400:'#94a3b8', 500:'#64748b', 600:'#475569', 700:'#334155', 800:'#1e293b', 900:'#0f172a', 950:'#020617' },
+          brand: { 50:'#eef4ff', 100:'#d9e6ff', 200:'#bcd3ff', 300:'#8fb6ff', 400:'#5b8eff', 500:'#3b69f5', 600:'#2749d4', 700:'#1f3aae', 800:'#1f348a', 900:'#1f3070', 950:'#161f44' },
+          amber: { 500:'#f59e0b', 600:'#d97706' },
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --surface: #ffffff;
+    --border: #e6e9f0;
+    --ink-1: #0f172a;
+    --ink-2: #475569;
+    --ink-3: #94a3b8;
+    --brand: #1f3aae;
+    --amber: #d97706;
+  }
+  html, body { background: var(--bg); color: var(--ink-1); font-family: 'Inter', sans-serif; }
+  * { -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .sidebar-link { transition: all .15s ease; }
+  .sidebar-link:hover { background: rgba(255,255,255,.06); }
+  .sidebar-link.active { background: rgba(245,158,11,.15); color: #fbbf24; box-shadow: inset 2px 0 0 #f59e0b; }
+  .sidebar-link.active .icon-wrap { color: #fbbf24; }
+
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 14px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.02em; }
+
+  .badge-draft   { background:#fef3c7; color:#92400e; }
+  .badge-pending { background:#dbeafe; color:#1e40af; }
+  .badge-approved{ background:#dcfce7; color:#166534; }
+  .badge-rejected{ background:#fee2e2; color:#991b1b; }
+  .badge-obsolete{ background:#f1f5f9; color:#475569; }
+
+  .cat-bim   { background:#e0e7ff; color:#3730a3; }
+  .cat-mat   { background:#ffedd5; color:#9a3412; }
+  .cat-man   { background:#dcfce7; color:#166534; }
+  .cat-equip { background:#fee2e2; color:#991b1b; }
+  .cat-tool  { background:#fef9c3; color:#854d0e; }
+  .cat-cons  { background:#f3e8ff; color:#6b21a8; }
+  .cat-temp  { background:#fce7f3; color:#9d174d; }
+  .cat-act   { background:#dbeafe; color:#1e40af; }
+  .cat-safe  { background:#fee2e2; color:#991b1b; }
+  .cat-qc    { background:#cffafe; color:#155e75; }
+  .cat-test   { background:#ccfbf1; color:#115e59; }
+  .cat-std   { background:#e2e8f0; color:#334155; }
+  .cat-unit  { background:#f1f5f9; color:#475569; }
+  .cat-boq   { background:#ede9fe; color:#5b21b6; }
+  .cat-norm  { background:#d1fae5; color:#065f46; }
+  .cat-clas  { background:#fae8ff; color:#86198f; }
+
+  .stat-card { position:relative; overflow:hidden; }
+  .stat-card::after { content:''; position:absolute; top:0; right:0; width:120px; height:120px; border-radius:50%; opacity:.05; transform:translate(40%,-40%); }
+
+  table.data-table { border-collapse: collapse; width:100%; font-size:13px; }
+  table.data-table th { text-align:left; padding:10px 12px; background:#f8fafc; color:#475569; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid var(--border); position:sticky; top:0; }
+  table.data-table td { padding:10px 12px; border-bottom:1px solid #f1f5f9; color:#1e293b; }
+  table.data-table tr:hover td { background:#f8fafc; }
+
+  .relation-edge { stroke:#94a3b8; stroke-width:1.2; fill:none; opacity:.55; }
+  .relation-node { cursor:pointer; transition: all .2s; }
+  .relation-node:hover { filter: brightness(1.05); }
+
+  .field-label { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; font-weight:600; }
+
+  .tab-btn { padding:8px 14px; font-size:13px; font-weight:500; color:#475569; border-bottom:2px solid transparent; cursor:pointer; }
+  .tab-btn.active { color:#1f3aae; border-bottom-color:#1f3aae; }
+
+  .modal-backdrop { background:rgba(15,23,42,.55); backdrop-filter:blur(4px); }
+
+  .pulse-dot { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 0 rgba(34,197,94,.5); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)} 70%{box-shadow:0 0 0 10px rgba(34,197,94,0)} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(148,163,184,.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148,163,184,.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  details > summary { list-style:none; cursor:pointer; }
+  details > summary::-webkit-details-marker { display:none; }
+
+  .tree-item { padding:6px 10px; border-radius:6px; cursor:pointer; transition: background .15s; }
+  .tree-item:hover { background:#f1f5f9; }
+  .tree-item.selected { background:#dbeafe; color:#1e40af; font-weight:600; }
+
+  .gradient-text { background:linear-gradient(135deg,#1f3aae,#3b69f5); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside class="w-64 bg-ink-900 text-ink-100 flex-shrink-0 flex flex-col fixed lg:relative h-screen z-30 print:hidden" id="sidebar">
+    <div class="px-5 py-4 flex items-center gap-3 border-b border-ink-800">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
+        <i data-lucide="boxes" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="font-display font-bold text-white text-lg leading-tight">ConstMaster</div>
+        <div class="text-[10px] text-ink-400 tracking-widest uppercase">BIM Object Library v1.0</div>
+      </div>
+    </div>
+
+    <div class="px-4 py-3 border-b border-ink-800">
+      <div class="relative">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"></i>
+        <input id="globalSearch" placeholder="Search master items, codes, materials..." class="w-full bg-ink-800 text-sm pl-9 pr-3 py-2 rounded-lg outline-none border border-transparent focus:border-amber-500 text-ink-100 placeholder-ink-500" />
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 text-sm" id="nav">
+      <div class="px-3 pt-2 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Overview</div>
+      <a data-view="dashboard" class="sidebar-link active flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="layout-dashboard" class="w-4 h-4"></i></span> Dashboard
+      </a>
+      <a data-view="relationships" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="share-2" class="w-4 h-4"></i></span> Relationship Explorer
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Master Data</div>
+      <a data-view="bim" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="box" class="w-4 h-4"></i></span> BIM Element Library
+      </a>
+      <a data-view="materials" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="package" class="w-4 h-4"></i></span> Materials
+      </a>
+      <a data-view="manpower" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="users" class="w-4 h-4"></i></span> Manpower & Labour
+      </a>
+      <a data-view="equipment" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="truck" class="w-4 h-4"></i></span> Equipment & Machinery
+      </a>
+      <a data-view="tools" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="wrench" class="w-4 h-4"></i></span> Tools & Consumables
+      </a>
+      <a data-view="tempworks" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="construction" class="w-4 h-4"></i></span> Temporary Works
+      </a>
+      <a data-view="activities" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="list-checks" class="w-4 h-4"></i></span> Activities
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Safety · Quality · Testing</div>
+      <a data-view="safety" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="shield-alert" class="w-4 h-4"></i></span> Safety Library
+      </a>
+      <a data-view="quality" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="badge-check" class="w-4 h-4"></i></span> Quality Control
+      </a>
+      <a data-view="testing" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="flask-conical" class="w-4 h-4"></i></span> Testing & Laboratory
+      </a>
+      <a data-view="standards" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="book-open" class="w-4 h-4"></i></span> Standards & Units
+      </a>
+
+      <div class="px-3 pt-3 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Governance</div>
+      <a data-view="approval" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="git-pull-request" class="w-4 h-4"></i></span> Approval Centre
+      </a>
+      <a data-view="ai" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="sparkles" class="w-4 h-4"></i></span> AI Generation Centre
+      </a>
+      <a data-view="audit" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-ink-200">
+        <span class="icon-wrap"><i data-lucide="history" class="w-4 h-4"></i></span> Audit Centre
+      </a>
+    </nav>
+
+    <div class="border-t border-ink-800 p-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-amber-500 flex items-center justify-center font-semibold text-white text-sm">RS</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-white truncate">R. Senanayake</div>
+          <div class="text-[10px] text-ink-400 flex items-center gap-1"><span class="pulse-dot"></span> Master Data Admin</div>
+        </div>
+        <button class="text-ink-400 hover:text-white"><i data-lucide="settings" class="w-4 h-4"></i></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="flex-1 lg:ml-0 min-w-0 flex flex-col">
+    <!-- Topbar -->
+    <header class="bg-white border-b border-ink-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
+      <div class="flex items-center gap-3">
+        <button class="lg:hidden text-ink-600" id="menuBtn"><i data-lucide="menu" class="w-5 h-5"></i></button>
+        <div>
+          <h1 id="pageTitle" class="font-display text-lg font-semibold text-ink-900">Dashboard</h1>
+          <p id="pageSubtitle" class="text-xs text-ink-500">Construction master database overview & system health</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-ink-50 rounded-lg text-xs text-ink-600">
+          <i data-lucide="database" class="w-3.5 h-3.5"></i> <span id="recCount">— records</span>
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium border border-ink-200 rounded-lg text-ink-700 hover:bg-ink-50 flex items-center gap-1.5"><i data-lucide="download" class="w-3.5 h-3.5"></i> Export</button>
+        <button class="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 flex items-center gap-1.5"><i data-lucide="plus" class="w-3.5 h-3.5"></i> New Master Item</button>
+      </div>
+    </header>
+
+    <main class="flex-1 p-6 overflow-x-hidden" id="app">
+      <!-- views injected here -->
+    </main>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" id="modalContent"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden bg-ink-900 text-white px-4 py-3 rounded-lg shadow-xl text-sm flex items-center gap-2">
+  <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+  <span id="toastMsg">Done</span>
+</div>
+
+<script>
+/* =========================================================================
+   CONSTMASTER — Construction Master Database & BIM Object Library
+   Single-file demo with rich seed data & relationships between items.
+   ========================================================================= */
+
+/* ----------------------- DATA: STANDARDS & UNITS ----------------------- */
+const UNITS = [
+  { id:'u1', code:'U-M3', name:'Cubic Metre', symbol:'m³', dimension:'Volume' },
+  { id:'u2', code:'U-M2', name:'Square Metre', symbol:'m²', dimension:'Area' },
+  { id:'u3', code:'U-M',  name:'Metre',        symbol:'m',  dimension:'Length' },
+  { id:'u4', code:'U-MM', name:'Millimetre',   symbol:'mm', dimension:'Length' },
+  { id:'u5', code:'U-KG', name:'Kilogram',     symbol:'kg', dimension:'Mass' },
+  { id:'u6', code:'U-T',  name:'Tonne',        symbol:'t',  dimension:'Mass' },
+  { id:'u7', code:'U-NO', name:'Number',       symbol:'no', dimension:'Count' },
+  { id:'u8', code:'U-SET',name:'Set',           symbol:'set',dimension:'Count' },
+  { id:'u9', code:'U-L',  name:'Litre',         symbol:'L',  dimension:'Volume' },
+  { id:'u10',code:'U-BAG',name:'Bag',           symbol:'bag',dimension:'Count' },
+  { id:'u11',code:'U-HR', name:'Hour',          symbol:'hr', dimension:'Time' },
+  { id:'u12',code:'U-DAY',name:'Day',           symbol:'day',dimension:'Time' },
+  { id:'u13',code:'U-MPA',name:'Megapascal',    symbol:'MPa',dimension:'Pressure' },
+  { id:'u14',code:'U-KN', name:'Kilonewton',    symbol:'kN', dimension:'Force' },
+];
+
+const STANDARDS = [
+  { id:'s1',  code:'IS 456:2000',     title:'Plain and Reinforced Concrete — Code of Practice',                                  authority:'BIS',     status:'Approved' },
+  { id:'s2',  code:'IS 800:2007',     title:'General Construction in Steel — Code of Practice',                                  authority:'BIS',     status:'Approved' },
+  { id:'s3',  code:'IS 1786:2008',    title:'High Strength Deformed Steel Bars and Wires for Concrete Reinforcement',           authority:'BIS',     status:'Approved' },
+  { id:'s4',  code:'IS 516:2018',     title:'Hardened Concrete — Methods of Test',                                                authority:'BIS',     status:'Approved' },
+  { id:'s5',  code:'IS 1199:2018',    title:'Fresh Concrete — Methods of Sampling, Testing and Analysis',                       authority:'BIS',     status:'Approved' },
+  { id:'s6',  code:'IS 383:2016',     title:'Coarse and Fine Aggregate for Concrete — Specification',                             authority:'BIS',     status:'Approved' },
+  { id:'s7',  code:'IS 269:2015',     title:'Ordinary Portland Cement — Specification',                                          authority:'BIS',     status:'Approved' },
+  { id:'s8',  code:'IS 13920:2016',   title:'Ductile Design and Detailing of RC Structures Subjected to Seismic Forces',         authority:'BIS',     status:'Approved' },
+  { id:'s9',  code:'IS 2911:2010',    title:'Design and Construction of Pile Foundations',                                        authority:'BIS',     status:'Approved' },
+  { id:'s10', code:'IRC:37-2018',     title:'Guidelines for the Design of Flexible Pavements',                                    authority:'IRC',     status:'Approved' },
+  { id:'s11', code:'MoRTH-5th',       title:'Specifications for Road and Bridge Works (5th Revision)',                            authority:'MoRTH',   status:'Approved' },
+  { id:'s12', code:'IS 1201-1220',    title:'Bitumen — Methods of Test',                                                          authority:'BIS',     status:'Approved' },
+  { id:'s13', code:'BS EN 206:2013',  title:'Concrete — Specification, Performance, Production and Conformity',                   authority:'CEN',     status:'Approved' },
+  { id:'s14', code:'IFC 4.3',         title:'Industry Foundation Classes — Built Environment Data Schema',                      authority:'buildingSMART', status:'Approved' },
+];
+
+/* ----------------------- DATA: RESOURCES ----------------------- */
+const MATERIALS = [
+  // Cement & Aggregates
+  { id:'m1',  code:'MAT-CMT-001', name:'OPC Cement 53 Grade',         spec:'CEM I 53N, IS 269',  unit:'bag', category:'Cement', standards:['s7','s6'] },
+  { id:'m2',  code:'MAT-CMT-002', name:'PPC Cement',                  spec:'IS 1489 Part 1',     unit:'bag', category:'Cement', standards:['s7'] },
+  { id:'m3',  code:'MAT-AGG-001', name:'River Sand (FM 2.6)',          spec:'Zone II, IS 383',    unit:'m³',  category:'Fine Aggregate', standards:['s6'] },
+  { id:'m4',  code:'MAT-AGG-002', name:'Coarse Aggregate 20mm',        spec:'Crushed, IS 383',    unit:'m³',  category:'Coarse Aggregate', standards:['s6'] },
+  { id:'m5',  code:'MAT-AGG-003', name:'Coarse Aggregate 12.5mm',     spec:'Crushed, IS 383',    unit:'m³',  category:'Coarse Aggregate', standards:['s6'] },
+  { id:'m6',  code:'MAT-AGG-004', name:'Stone Dust',                  spec:'Passing 75 micron',  unit:'m³',  category:'Fine Aggregate', standards:['s6'] },
+  // Reinforcement
+  { id:'m7',  code:'MAT-REB-001', name:'TMT Bar Fe500D 8mm',          spec:'IS 1786, UTS/YS≥1.10', unit:'kg', category:'Reinforcement', standards:['s3'] },
+  { id:'m8',  code:'MAT-REB-002', name:'TMT Bar Fe500D 12mm',          spec:'IS 1786',             unit:'kg', category:'Reinforcement', standards:['s3'] },
+  { id:'m9',  code:'MAT-REB-003', name:'TMT Bar Fe500D 16mm',          spec:'IS 1786',             unit:'kg', category:'Reinforcement', standards:['s3'] },
+  { id:'m10', code:'MAT-REB-004', name:'TMT Bar Fe500D 20mm',          spec:'IS 1786',             unit:'kg', category:'Reinforcement', standards:['s3'] },
+  { id:'m11', code:'MAT-REB-005', name:'TMT Bar Fe500D 25mm',          spec:'IS 1786',             unit:'kg', category:'Reinforcement', standards:['s3'] },
+  { id:'m12', code:'MAT-MSC-001', name:'Binding Wire 18 SWG',          spec:'Annealed GI',         unit:'kg', category:'Miscellaneous', standards:[] },
+  // Concrete Admixtures
+  { id:'m13', code:'MAT-ADM-001', name:'Superplasticizer (PCE based)', spec:'IS 9103, ASTM C494 Type F', unit:'L', category:'Admixture', standards:[] },
+  { id:'m14', code:'MAT-ADM-002', name:'Waterproofing Admixture',      spec:'Integral Crystalline',unit:'kg', category:'Admixture', standards:[] },
+  { id:'m15', code:'MAT-CUR-001', name:'Curing Compound',             spec:'Wax emulsion, ASTM C309', unit:'L', category:'Curing', standards:[] },
+  // Masonry
+  { id:'m16', code:'MAT-MAH-001', name:'Brick Class A',               spec:'IS 1077, 200x100x75', unit:'no', category:'Masonry', standards:[] },
+  { id:'m17', code:'MAT-MAH-002', name:'Solid Concrete Block 400x200x200', spec:'IS 2185 Part 1', unit:'no', category:'Masonry', standards:[] },
+  { id:'m18', code:'MAT-MOR-001', name:'Cement Mortar 1:6',            spec:'OPC + Sand',         unit:'m³', category:'Mortar', standards:['s7','s3'] },
+  { id:'m19', code:'MAT-MOR-002', name:'Cement Mortar 1:4',            spec:'OPC + Sand',         unit:'m³', category:'Mortar', standards:['s7'] },
+  { id:'m20', code:'MAT-PLS-001', name:'Cement Plaster 15mm',          spec:'1:4 mix',            unit:'m²', category:'Plaster', standards:[] },
+  // Finishes
+  { id:'m21', code:'MAT-TIL-001', name:'Vitrified Floor Tile 600x600', spec:'IS 15622, Group B',unit:'m²', category:'Tile', standards:[] },
+  { id:'m22', code:'MAT-TIL-002', name:'Ceramic Wall Tile 300x450',   spec:'IS 15622',           unit:'m²', category:'Tile', standards:[] },
+  { id:'m23', code:'MAT-PNT-001', name:'Primer (Cement Acrylic)',     spec:'IS 15489',           unit:'L',  category:'Paint', standards:[] },
+  { id:'m24', code:'MAT-PNT-002', name:'Acrylic Emulsion Paint',      spec:'IS 15489',           unit:'L',  category:'Paint', standards:[] },
+  // Water-proofing
+  { id:'m25', code:'MAT-WPR-001', name:'APP Membrane 4mm',             spec:'Atactic Polypropylene',unit:'m²',category:'Waterproofing', standards:[] },
+  // Pipes & Utilities
+  { id:'m26', code:'MAT-PIP-001', name:'PVC Pipe 110mm',              spec:'IS 4985, SWR',        unit:'m',  category:'Pipe', standards:[] },
+  { id:'m27', code:'MAT-PIP-002', name:'PVC Pipe 160mm',              spec:'IS 4985',             unit:'m',  category:'Pipe', standards:[] },
+  { id:'m28', code:'MAT-PIP-003', name:'RCC Pipe NP3 300mm',           spec:'IS 458',              unit:'m',  category:'Pipe', standards:[] },
+  { id:'m29', code:'MAT-PIP-004', name:'HDPE Pipe 110mm',             spec:'IS 4984, PE100',       unit:'m',  category:'Pipe', standards:[] },
+  { id:'m30', code:'MAT-FIT-001', name:'PVC Manhole Cover 600x600',   spec:'IS 1726, HDPE',       unit:'no', category:'Fitting', standards:[] },
+  // Road
+  { id:'m31', code:'MAT-ROA-001', name:'WMM Aggregate',                spec:'MoRTH 406',           unit:'m³', category:'Road Material', standards:['s11'] },
+  { id:'m32', code:'MAT-ROA-002', name:'Bitumen 60/70',                spec:'IS 73, VG30',         unit:'t',  category:'Bitumen', standards:['s12'] },
+  { id:'m33', code:'MAT-ROA-003', name:'BC Mix 13.2mm',                spec:'MoRTH 509',           unit:'t',  category:'Bitumen Mix', standards:['s11','s12'] },
+  { id:'m34', code:'MAT-ROA-004', name:'DBM Mix 37.5mm',               spec:'MoRTH 505',           unit:'t',  category:'Bitumen Mix', standards:['s11'] },
+  { id:'m35', code:'MAT-ROA-005', name:'GSB Aggregate',                spec:'MoRTH 401',           unit:'m³', category:'Road Material', standards:['s11'] },
+  // Geosynthetics
+  { id:'m36', code:'MAT-GEO-001', name:'Woven Geotextile 200 gsm',     spec:'IS 14295',            unit:'m²', category:'Geosynthetic', standards:[] },
+  { id:'m37', code:'MAT-GEO-002', name:'Geogrid BX-1100',              spec:'Biaxial PP',           unit:'m²', category:'Geosynthetic', standards:[] },
+  // Electrical
+  { id:'m38', code:'MAT-ELE-001', name:'Cable 2.5mm² Copper',         spec:'IS 694, FR',           unit:'m',  category:'Electrical', standards:[] },
+  { id:'m39', code:'MAT-ELE-002', name:'PVC Conduit 20mm',             spec:'IS 9537',              unit:'m',  category:'Electrical', standards:[] },
+  { id:'m40', code:'MAT-ELE-003', name:'Switch Socket 13A',            spec:'IS 3854',              unit:'no', category:'Electrical', standards:[] },
+  // Doors & Windows
+  { id:'m41', code:'MAT-DOW-001', name:'Pressed Steel Door Frame 100x50', spec:'IS 7452',          unit:'m',  category:'Doors/Windows', standards:[] },
+  { id:'m42', code:'MAT-DOW-002', name:'Flush Door Shutter 1000x2100', spec:'IS 1003',             unit:'no', category:'Doors/Windows', standards:[] },
+  { id:'m43', code:'MAT-DOW-003', name:'Aluminium Sliding Window',     spec:'IS 7452, 1200x1500',  unit:'no', category:'Doors/Windows', standards:[] },
+  { id:'m44', code:'MAT-DOW-004', name:'Float Glass 5mm',               spec:'IS 2835',             unit:'m²', category:'Glass', standards:[] },
+  // Misc
+  { id:'m45', code:'MAT-MSC-002', name:'Diesel HSD',                   spec:'BS-VI',               unit:'L',  category:'Fuel', standards:[] },
+  { id:'m46', code:'MAT-MSC-003', name:'Welding Rod E7018',            spec:'AWS A5.1',             unit:'kg', category:'Welding', standards:[] },
+  { id:'m47', code:'MAT-MSC-004', name:'Oxygen Gas',                   spec:'Industrial',           unit:'m³', category:'Welding', standards:[] },
+  { id:'m48', code:'MAT-MSC-005', name:'Acetylene Gas',                spec:'Dissolved',            unit:'m³', category:'Welding', standards:[] },
+];
+
+const MANPOWER = [
+  { id:'p1', code:'MP-ENG-001', name:'Civil Engineer',                skill:'Engineer',    trade:'Engineering',  standards:[] },
+  { id:'p2', code:'MP-ENG-002', name:'Structural Engineer',            skill:'Engineer',    trade:'Engineering',  standards:['s1','s8'] },
+  { id:'p3', code:'MP-ENG-003', name:'Geotechnical Engineer',          skill:'Engineer',    trade:'Engineering',  standards:['s9'] },
+  { id:'p4', code:'MP-ENG-004', name:'QA/QC Engineer',                 skill:'Engineer',    trade:'Quality',      standards:['s4','s5'] },
+  { id:'p5', code:'MP-OFC-001', name:'Safety Officer',                 skill:'Officer',     trade:'Safety',        standards:[] },
+  { id:'p6', code:'MP-SUR-001', name:'Land Surveyor',                 skill:'Specialist',  trade:'Survey',        standards:[] },
+  { id:'p7', code:'MP-SUP-001', name:'Foreman',                       skill:'Supervisor',  trade:'General',       standards:[] },
+  { id:'p8', code:'MP-MAS-001', name:'Mason (Skilled)',               skill:'Skilled',     trade:'Masonry',       standards:[] },
+  { id:'p9', code:'MP-MAS-002', name:'Mason Helper',                   skill:'Semi-skilled',trade:'Masonry',       standards:[] },
+  { id:'p10',code:'MP-REB-001', name:'Bar Bender',                     skill:'Skilled',     trade:'Reinforcement', standards:['s3'] },
+  { id:'p11',code:'MP-REB-002', name:'Bar Bender Helper',             skill:'Unskilled',   trade:'Reinforcement', standards:[] },
+  { id:'p12',code:'MP-CAR-001', name:'Carpenter (Formwork)',           skill:'Skilled',     trade:'Carpentry',     standards:[] },
+  { id:'p13',code:'MP-CAR-002', name:'Carpenter Helper',              skill:'Unskilled',   trade:'Carpentry',     standards:[] },
+  { id:'p14',code:'MP-CON-001', name:'Concrete Worker',                skill:'Skilled',     trade:'Concrete',      standards:['s1'] },
+  { id:'p15',code:'MP-CON-002', name:'Concrete Vibrator Operator',    skill:'Semi-skilled',trade:'Concrete',      standards:[] },
+  { id:'p16',code:'MP-LAB-001', name:'General Labour',                skill:'Unskilled',   trade:'General',       standards:[] },
+  { id:'p17',code:'MP-OPC-001', name:'Crane Operator',                skill:'Skilled',     trade:'Operation',     standards:[] },
+  { id:'p18',code:'MP-OPC-002', name:'Excavator Operator',            skill:'Skilled',     trade:'Operation',     standards:[] },
+  { id:'p19',code:'MP-OPC-003', name:'Batch Plant Operator',          skill:'Skilled',     trade:'Operation',     standards:[] },
+  { id:'p20',code:'MP-OPC-004', name:'Concrete Pump Operator',        skill:'Skilled',     trade:'Operation',     standards:[] },
+  { id:'p21',code:'MP-WLD-001', name:'Welder (Arc)',                   skill:'Skilled',     trade:'Welding',       standards:[] },
+  { id:'p22',code:'MP-ELE-001', name:'Electrician',                   skill:'Skilled',     trade:'Electrical',    standards:[] },
+  { id:'p23',code:'MP-PLM-001', name:'Plumber',                       skill:'Skilled',     trade:'Plumbing',      standards:[] },
+  { id:'p24',code:'MP-PNT-001', name:'Painter',                       skill:'Skilled',     trade:'Painting',      standards:[] },
+  { id:'p25',code:'MP-TIL-001', name:'Tile Fixer',                    skill:'Skilled',     trade:'Finishes',      standards:[] },
+  { id:'p26',code:'MP-DRV-001', name:'Driver (Heavy Vehicle)',        skill:'Skilled',     trade:'Transport',     standards:[] },
+];
+
+const EQUIPMENT = [
+  { id:'e1', code:'EQP-BCP-001', name:'Concrete Batching Plant 30 m³/hr', spec:'Twin-shaft, computerized', category:'Concrete Production', standards:[] },
+  { id:'e2', code:'EQP-TM-001',  name:'Transit Mixer 6 m³',              spec:'Heavy truck mounted',     category:'Concrete Transport', standards:[] },
+  { id:'e3', code:'EQP-CP-001',  name:'Concrete Pump 60 m³/hr',          spec:'Boom type 36m',           category:'Concrete Placement', standards:[] },
+  { id:'e4', code:'EQP-EXC-001', name:'Hydraulic Excavator 20T',         spec:'PC200, 0.8 m³ bucket',     category:'Earthwork', standards:[] },
+  { id:'e5', code:'EQP-EXC-002', name:'Mini Excavator 13T',              spec:'PC130',                    category:'Earthwork', standards:[] },
+  { id:'e6', code:'EQP-JCB-001', name:'Backhoe Loader 3CX',              spec:'JCB 3CX',                  category:'Earthwork', standards:[] },
+  { id:'e7', code:'EQP-BLD-001', name:'Bulldozer D6',                    spec:'Caterpillar D6',           category:'Earthwork', standards:[] },
+  { id:'e8', code:'EQP-GRD-001', name:'Motor Grader 140H',               spec:'140H, 12 ft blade',         category:'Road Work', standards:[] },
+  { id:'e9', code:'EQP-ROL-001', name:'Vibratory Roller 12T',            spec:'Single drum, smooth',      category:'Compaction', standards:[] },
+  { id:'e10',code:'EQP-ROL-002', name:'Smooth Wheel Roller 8T',          spec:'Tandem',                    category:'Compaction', standards:[] },
+  { id:'e11',code:'EQP-CMP-001', name:'Plate Compactor',                 spec:'Reversible 600kg',          category:'Compaction', standards:[] },
+  { id:'e12',code:'EQP-CRA-001', name:'Tower Crane 5T',                  spec:'Hammerhead 50m',            category:'Lifting', standards:[] },
+  { id:'e13',code:'EQP-CRA-002', name:'Mobile Crane 25T',               spec:'Tata 25T',                  category:'Lifting', standards:[] },
+  { id:'e14',code:'EQP-CRA-003', name:'Mobile Crane 50T',               spec:'Tadano 50T',                category:'Lifting', standards:[] },
+  { id:'e15',code:'EQP-GEN-001', name:'Diesel Generator 125 kVA',         spec:'Cummins',                   category:'Power', standards:[] },
+  { id:'e16',code:'EQP-GEN-002', name:'Diesel Generator 250 kVA',         spec:'Cummins',                   category:'Power', standards:[] },
+  { id:'e17',code:'EQP-WLD-001', name:'Welding Machine 400A',             spec:'DC Inverter',               category:'Welding', standards:[] },
+  { id:'e18',code:'EQP-BCU-001', name:'Bar Cutting Machine 32mm',         spec:'Electric',                  category:'Rebar Processing', standards:[] },
+  { id:'e19',code:'EQP-BBE-001', name:'Bar Bending Machine 32mm',         spec:'Electric',                  category:'Rebar Processing', standards:[] },
+  { id:'e20',code:'EQP-VIB-001', name:'Concrete Vibrator (Needle 60mm)',  spec:'Pneumatic/Electric',        category:'Concrete', standards:[] },
+  { id:'e21',code:'EQP-AIR-001', name:'Air Compressor 900 CFM',           spec:'Sullair portable',          category:'Pneumatic', standards:[] },
+  { id:'e22',code:'EQP-PMP-001', name:'Water Pump 5HP',                   spec:'Centrifugal',               category:'Pumping', standards:[] },
+  { id:'e23',code:'EQP-PMP-002', name:'Dewatering Pump',                  spec:'Submersible 7.5 kW',        category:'Pumping', standards:[] },
+  { id:'e24',code:'EQP-SUR-001', name:'Survey Total Station',             spec:'Topcon GT-1005',            category:'Survey', standards:[] },
+  { id:'e25',code:'EQP-PIL-001', name:'Bored Piling Rig',                 spec:'Bauer BG-25',               category:'Piling', standards:['s9'] },
+  { id:'e26',code:'EQP-LDR-001', name:'Skid Steer Loader',                spec:'Bobcat S650',               category:'Earthwork', standards:[] },
+  { id:'e27',code:'EQP-TIP-001', name:'Tipper Truck 10 m³',               spec:'Tata Prima',                category:'Transport', standards:[] },
+  { id:'e28',code:'EQP-ASP-001', name:'Asphalt Paver Finisher',          spec:'Vogele Super 1800-3',      category:'Road Work', standards:[] },
+  { id:'e29',code:'EQP-SAW-001', name:'Concrete Cutting Saw',            spec:'Husqvarna FS-500',         category:'Cutting', standards:[] },
+  { id:'e30',code:'EQP-CON-001', name:'Concrete Boom Placer 36m',        spec:'Schwing 36X',              category:'Concrete Placement', standards:[] },
+];
+
+const TOOLS = [
+  { id:'t1', code:'TOL-MIX-001', name:'Concrete Mixer 0.4 m³',     category:'Concrete' },
+  { id:'t2', code:'TOL-WHB-001', name:'Wheel Barrow 6 cft',         category:'Transport' },
+  { id:'t3', code:'TOL-TRO-001', name:'Trowel Steel',               category:'Finishing' },
+  { id:'t4', code:'TOL-FLT-001', name:'Wooden Float',               category:'Finishing' },
+  { id:'t5', code:'TOL-LVL-001', name:'Spirit Level 600mm',         category:'Measuring' },
+  { id:'t6', code:'TOL-PLB-001', name:'Plumb Bob',                  category:'Measuring' },
+  { id:'t7', code:'TOL-TAP-001', name:'Measuring Tape 30m',          category:'Measuring' },
+  { id:'t8', code:'TOL-CUB-001', name:'Concrete Cube Mould 150mm',   category:'Testing Tool' },
+  { id:'t9', code:'TOL-SLP-001', name:'Slump Cone Apparatus',        category:'Testing Tool' },
+  { id:'t10',code:'TOL-RHB-001', name:'Rebound Hammer',              category:'NDT Tool' },
+  { id:'t11',code:'TOL-SDH-001', name:'Sledge Hammer 8lb',           category:'Hand Tool' },
+  { id:'t12',code:'TOL-SAW-001', name:'Hand Saw',                    category:'Carpentry Tool' },
+  { id:'t13',code:'TOL-TLC-001', name:'Tile Cutter Manual',          category:'Finishing Tool' },
+  { id:'t14',code:'TOL-WRC-001', name:'Pipe Wrench 24"',             category:'Plumbing Tool' },
+  { id:'t15',code:'TOL-DRL-001', name:'Drill Machine 13mm',          category:'Power Tool' },
+  { id:'t16',code:'TOL-AGL-001', name:'Angle Grinder 4"',             category:'Power Tool' },
+  { id:'t17',code:'TOL-VTB-001', name:'Vibrating Table',             category:'Testing Tool' },
+  { id:'t18',code:'TOL-SIV-001', name:'Sieve Set IS',                category:'Testing Tool' },
+  { id:'t19',code:'TOL-SLD-001', name:'Slump Test Set',              category:'Testing Tool' },
+  { id:'t20',code:'TOL-COV-001', name:'Concrete Cover Meter',        category:'NDT Tool' },
+];
+
+const CONSUMABLES = [
+  { id:'c1', code:'CON-MSC-001', name:'Formwork Release Agent',  category:'Concrete' },
+  { id:'c2', code:'CON-MSC-002', name:'Diesel (Litre)',            category:'Fuel' },
+  { id:'c3', code:'CON-MSC-003', name:'Lubricant Oil',             category:'Lubricant' },
+  { id:'c4', code:'CON-MSC-004', name:'Hydraulic Oil',             category:'Lubricant' },
+  { id:'c5', code:'CON-MSC-005', name:'Grease',                    category:'Lubricant' },
+  { id:'c6', code:'CON-MSC-006', name:'Oxygen Cylinder',            category:'Welding' },
+  { id:'c7', code:'CON-MSC-007', name:'Acetylene Cylinder',        category:'Welding' },
+  { id:'c8', code:'CON-MSC-008', name:'Grinding Disc 4"',            category:'Abrasive' },
+  { id:'c9', code:'CON-MSC-009', name:'Cutting Disc 4"',            category:'Abrasive' },
+  { id:'c10',code:'CON-MSC-010', name:'Cotton Waste',              category:'Cleaning' },
+  { id:'c11',code:'CON-MSC-011', name:'Emery Paper 80 grit',       category:'Abrasive' },
+  { id:'c12',code:'CON-MSC-012', name:'Plastic Sheet 2m x 100m',   category:'Protection' },
+  { id:'c13',code:'CON-MSC-013', name:'Wood Plank 50x100',         category:'Material' },
+  { id:'c14',code:'CON-MSC-014', name:'Chalk Stick',                category:'Marking' },
+  { id:'c15',code:'CON-MSC-015', name:'Permanent Marker',          category:'Marking' },
+  { id:'c16',code:'CON-MSC-016', name:'Curing Compound',            category:'Concrete' },
+];
+
+const TEMPWORKS = [
+  { id:'tw1', code:'TW-FRM-001', name:'Steel Panel Formwork System', category:'Formwork' },
+  { id:'tw2', code:'TW-FRM-002', name:'Timber Formwork',              category:'Formwork' },
+  { id:'tw3', code:'TW-FRM-003', name:'Shuttering Plywood 18mm',      category:'Formwork' },
+  { id:'tw4', code:'TW-PRP-001', name:'Acrow Props (Span 3m)',         category:'Support' },
+  { id:'tw5', code:'TW-SCF-001', name:'Cuplock Scaffold',              category:'Scaffold' },
+  { id:'tw6', code:'TW-SCF-002', name:'Tube & Coupler Scaffold',       category:'Scaffold' },
+  { id:'tw7', code:'TW-HFR-001', name:'H-Frame Scaffold',              category:'Scaffold' },
+  { id:'tw8', code:'TW-BEM-001', name:'Steel Beam (ISMB 300)',         category:'Structural' },
+  { id:'tw9', code:'TW-BEM-002', name:'Steel Beam (ISMB 400)',         category:'Structural' },
+  { id:'tw10',code:'TW-OFC-001', name:'Site Office (Porta Cabin)',     category:'Site Setup' },
+  { id:'tw11',code:'TW-FNC-001', name:'Site Compound Fencing',         category:'Site Setup' },
+  { id:'tw12',code:'TW-TNK-001', name:'Water Storage Tank 10,000 L',   category:'Site Setup' },
+  { id:'tw13',code:'TW-BPF-001', name:'Batching Plant Foundation',    category:'Foundation' },
+  { id:'tw14',code:'TW-CRG-001', name:'Crane Base Block',              category:'Foundation' },
+];
+
+/* ----------------------- DATA: SAFETY ----------------------- */
+const SAFETY_HAZARDS = [
+  { id:'h1',  code:'SAF-HZD-001', name:'Fall from Height',           severity:'High',     activity:['a1','a3','a4','a5','a6'] },
+  { id:'h2',  code:'SAF-HZD-002', name:'Falling Material',           severity:'High',     activity:['a1','a2','a3'] },
+  { id:'h3',  code:'SAF-HZD-003', name:'Piling Rig Operation',       severity:'High',     activity:['a1'] },
+  { id:'h4',  code:'SAF-HZD-004', name:'Excavation Collapse',        severity:'Critical', activity:['a4'] },
+  { id:'h5',  code:'SAF-HZD-005', name:'Confined Space Entry',       severity:'Critical', activity:['a1','a4'] },
+  { id:'h6',  code:'SAF-HZD-006', name:'Concrete Pump Operation',    severity:'Medium',   activity:['a2','a8'] },
+  { id:'h7',  code:'SAF-HZD-007', name:'Hot Work / Welding',          severity:'Medium',   activity:['a11','a12'] },
+  { id:'h8',  code:'SAF-HZD-008', name:'Lifting Operation',          severity:'High',     activity:['a1','a2','a3'] },
+  { id:'h9',  code:'SAF-HZD-009', name:'Electrical Hazard',          severity:'High',     activity:['a22','a23'] },
+  { id:'h10', code:'SAF-HZD-010', name:'Noise Exposure',             severity:'Medium',   activity:['a1','a4','a9'] },
+  { id:'h11', code:'SAF-HZD-011', name:'Dust Inhalation',             severity:'Medium',   activity:['a4','a6'] },
+  { id:'h12', code:'SAF-HZD-012', name:'Formwork Failure',           severity:'Critical', activity:['a3','a7'] },
+  { id:'h13', code:'SAF-HZD-013', name:'Concrete Skin Burn',          severity:'Low',      activity:['a2','a8'] },
+  { id:'h14', code:'SAF-HZD-014', name:'Manual Handling Injury',     severity:'Medium',   activity:['a1','a5','a6','a7'] },
+  { id:'h15', code:'SAF-HZD-015', name:'Heavy Equipment Operation',  severity:'High',     activity:['a1','a4','a9'] },
+];
+
+const RISK_CONTROLS = [
+  { id:'rc1', code:'SAF-CTL-001', name:'Edge Protection / Guardrails',       type:'Engineering' },
+  { id:'rc2', code:'SAF-CTL-002', name:'Safety Harness & Lifeline',          type:'PPE' },
+  { id:'rc3', code:'SAF-CTL-003', name:'Excavation Shoring / Bench',        type:'Engineering' },
+  { id:'rc4', code:'SAF-CTL-004', name:'Gas Detection System',              type:'Engineering' },
+  { id:'rc5', code:'SAF-CTL-005', name:'Lifting Plan & Method Statement',   type:'Administrative' },
+  { id:'rc6', code:'SAF-CTL-006', name:'Permit-to-Work System',             type:'Administrative' },
+  { id:'rc7', code:'SAF-CTL-007', name:'Toolbox Talk',                      type:'Administrative' },
+  { id:'rc8', code:'SAF-CTL-008', name:'Daily Equipment Inspection',       type:'Administrative' },
+  { id:'rc9', code:'SAF-CTL-009', name:'Barricades & Signage',              type:'Engineering' },
+  { id:'rc10',code:'SAF-CTL-010', name:'Earthing & RCD Protection',         type:'Engineering' },
+  { id:'rc11',code:'SAF-CTL-011', name:'Acoustic Enclosures',               type:'Engineering' },
+  { id:'rc12',code:'SAF-CTL-012', name:'Dust Suppression (Water Spray)',   type:'Engineering' },
+];
+
+const PPE = [
+  { id:'ppe1', code:'SAF-PPE-001', name:'Hard Hat (IS 2925)',           type:'Head Protection' },
+  { id:'ppe2', code:'SAF-PPE-002', name:'Safety Shoes (IS 15298)',     type:'Foot Protection' },
+  { id:'ppe3', code:'SAF-PPE-003', name:'Hi-Visibility Vest',          type:'Visibility' },
+  { id:'ppe4', code:'SAF-PPE-004', name:'Safety Harness Full Body',   type:'Fall Protection' },
+  { id:'ppe5', code:'SAF-PPE-005', name:'Safety Goggles',              type:'Eye Protection' },
+  { id:'ppe6', code:'SAF-PPE-006', name:'Ear Protection (Earmuffs)',    type:'Hearing Protection' },
+  { id:'ppe7', code:'SAF-PPE-007', name:'Respirator (N95)',            type:'Respiratory' },
+  { id:'ppe8', code:'SAF-PPE-008', name:'Cut-resistant Gloves',        type:'Hand Protection' },
+  { id:'ppe9', code:'SAF-PPE-009', name:'Welding Shield',              type:'Face Protection' },
+  { id:'ppe10',code:'SAF-PPE-010', name:'Face Shield',                 type:'Face Protection' },
+  { id:'ppe11',code:'SAF-PPE-011', name:'Knee Pads',                   type:'Joint Protection' },
+  { id:'ppe12',code:'SAF-PPE-012', name:'Life Jacket (Marine)',         type:'Flotation' },
+];
+
+/* ----------------------- DATA: QUALITY ----------------------- */
+const QC_CHECKLISTS = [
+  { id:'q1',  code:'QC-CHK-001', name:'Reinforcement Inspection Checklist', category:'Reinforcement', elements:['b2','b3','b5','b6','b7'], standards:['s1','s8'] },
+  { id:'q2',  code:'QC-CHK-002', name:'Formwork Inspection Checklist',       category:'Formwork',     elements:['b2','b3','b5','b6','b7'], standards:[] },
+  { id:'q3',  code:'QC-CHK-003', name:'Pre-Pour Checklist',                  category:'Concrete',     elements:['b1','b2','b3','b4','b5','b6','b7'], standards:['s1','s5'] },
+  { id:'q4',  code:'QC-CHK-004', name:'Concrete Cube Sampling',              category:'Concrete',     elements:['b1','b2','b3','b4','b5','b6','b7'], standards:['s5','s4'] },
+  { id:'q5',  code:'QC-CHK-005', name:'Rebound Hammer Test (NDT)',           category:'NDT',          elements:['b1','b2','b3','b4','b5','b6','b7'], standards:['s4'] },
+  { id:'q6',  code:'QC-CHK-006', name:'Rebar Tensile Test Sampling',         category:'Material Test', elements:[], standards:['s3'] },
+  { id:'q7',  code:'QC-CHK-007', name:'Cement Test Sampling',                category:'Material Test', elements:[], standards:['s7'] },
+  { id:'q8',  code:'QC-CHK-008', name:'Aggregate Sieve Analysis',            category:'Material Test', elements:[], standards:['s6'] },
+  { id:'q9',  code:'QC-CHK-009', name:'Soil Compaction Field Density',       category:'Soil',         elements:['b14','b18'], standards:[] },
+  { id:'q10', code:'QC-CHK-010', name:'Pavement Density Test',              category:'Pavement',     elements:['b14'], standards:['s11'] },
+  { id:'q11', code:'QC-CHK-011', name:'Welding Visual Inspection',          category:'Welding',      elements:[], standards:[] },
+  { id:'q12', code:'QC-CHK-012', name:'Concrete Cover Meter Test',          category:'NDT',          elements:['b2','b3','b5','b6','b7'], standards:[] },
+];
+
+const ITP_TEMPLATES = [
+  { id:'itp1', code:'QC-ITP-001', name:'Bored Pile ITP',                  elements:['b1'], stages:['Material Approval','Boring','Reinforcement Cage','Concreting','Pile Head Treatment'] },
+  { id:'itp2', code:'QC-ITP-002', name:'Pile Cap ITP',                   elements:['b2'], stages:['Excavation','Blinding','Reinforcement','Formwork','Concreting'] },
+  { id:'itp3', code:'QC-ITP-003', name:'RC Column ITP',                  elements:['b5'], stages:['Reinforcement','Formwork','Concreting','Curing'] },
+  { id:'itp4', code:'QC-ITP-004', name:'RC Beam ITP',                    elements:['b6'], stages:['Reinforcement','Formwork','Concreting','Curing'] },
+  { id:'itp5', code:'QC-ITP-005', name:'RC Slab ITP',                    elements:['b7'], stages:['Formwork','Reinforcement','Concreting','Curing'] },
+  { id:'itp6', code:'QC-ITP-006', name:'Brick Masonry ITP',              elements:['b9'], stages:['Material Approval','Mortar Mix','Laying','Curing'] },
+  { id:'itp7', code:'QC-ITP-007', name:'Flexible Pavement ITP',          elements:['b14'], stages:['Subgrade','GSB','WMM','Prime Coat','BC'] },
+  { id:'itp8', code:'QC-ITP-008', name:'Bridge Pier ITP',                 elements:['b15'], stages:['Reinforcement','Formwork','Concreting','Curing'] },
+];
+
+/* ----------------------- DATA: TESTING ----------------------- */
+const TESTS = [
+  { id:'ts1', code:'TST-CON-001', name:'Concrete Compressive Strength', standards:['s4'],  specimen:'Cube 150mm',  frequency:'1 set/50 m³', equipment:['e20','t8'] },
+  { id:'ts2', code:'TST-CON-002', name:'Concrete Slump Test',           standards:['s5'],  specimen:'Fresh Concrete', frequency:'1/15 m³',  equipment:[] },
+  { id:'ts3', code:'TST-CMT-001', name:'Cement Consistency',            standards:['s7'],  specimen:'Cement Paste',  frequency:'Weekly', equipment:[] },
+  { id:'ts4', code:'TST-CMT-002', name:'Cement Setting Time',          standards:['s7'],  specimen:'Cement Paste',  frequency:'Weekly', equipment:[] },
+  { id:'ts5', code:'TST-AGG-001', name:'Aggregate Sieve Analysis',      standards:['s6'],  specimen:'5 kg sample',   frequency:'Monthly', equipment:['t18'] },
+  { id:'ts6', code:'TST-AGG-002', name:'Aggregate Impact Value',       standards:['s6'],  specimen:'Aggregate',     frequency:'Monthly', equipment:[] },
+  { id:'ts7', code:'TST-REB-001', name:'Steel Tensile Test',            standards:['s3'],  specimen:'Bar 600mm',     frequency:'1/50 t',  equipment:[] },
+  { id:'ts8', code:'TST-REB-002', name:'Steel Bend / Rebend Test',     standards:['s3'],  specimen:'Bar 500mm',     frequency:'1/50 t',  equipment:[] },
+  { id:'ts9', code:'TST-SOI-001', name:'Soil CBR Test',                  standards:[],      specimen:'Moulded sample', frequency:'Per layer', equipment:[] },
+  { id:'ts10',code:'TST-SOI-002', name:'Field Density (Sand Replacement)',standards:[],     specimen:'In-situ soil',  frequency:'1000 m²',  equipment:[] },
+  { id:'ts11',code:'TST-BTM-001', name:'Bitumen Penetration',           standards:['s12'], specimen:'Bitumen sample', frequency:'Per batch', equipment:[] },
+  { id:'ts12',code:'TST-BTM-002', name:'Marshall Stability',            standards:['s11'], specimen:'Briquette',     frequency:'Per batch', equipment:[] },
+  { id:'ts13',code:'TST-CON-003', name:'Rebound Hammer NDT',            standards:['s4'],  specimen:'In-situ concrete', frequency:'As required', equipment:['t10'] },
+  { id:'ts14',code:'TST-PIL-001', name:'Pile Integrity Test (Sonic)',   standards:['s9'],  specimen:'Pile shaft',    frequency:'100%',     equipment:[] },
+  { id:'ts15',code:'TST-PIL-002', name:'Pile Static Load Test',         standards:['s9'],  specimen:'Test pile',      frequency:'1%',       equipment:[] },
+];
+
+/* ----------------------- DATA: BIM ELEMENTS ----------------------- */
+/* The heart of the system: each BIM element has full relationships. */
+const BIM_ELEMENTS = [
+  {
+    id:'b1', code:'BIM-FND-001', name:'Bored Cast-in-situ Pile',
+    discipline:'Foundation', ifc:'IfcPile', geometry:'Cylinder',
+    materials:[ {id:'m1', qty:380, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.42, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.78, unit:'m³/m³', role:'Aggregate'}, {id:'m13', qty:1.5, unit:'L/m³', role:'Admixture'}, {id:'m8', qty:60, unit:'kg/m', role:'Main Bar'}, {id:'m7', qty:25, unit:'kg/m', role:'Lateral Tie'} ],
+    activities:['a1','a3'],
+    manpower:[ {id:'p3', qty:0.05, unit:'day/m'}, {id:'p7', qty:0.1, unit:'day/m'}, {id:'p16', qty:0.5, unit:'day/m'}, {id:'p5', qty:0.02, unit:'day/m'} ],
+    equipment:[ {id:'e25', qty:0.02, unit:'hr/m'}, {id:'e21', qty:0.03, unit:'hr/m'}, {id:'e2', qty:0.04, unit:'hr/m'} ],
+    tools:[], consumables:[ {id:'c1', qty:0.2, unit:'L/m²'} ],
+    tempWorks:[],
+    safety:['h3','h8','h15','h5'], quality:['itp1','q3','q4'], tests:['ts1','ts2','ts14','ts15'],
+    properties:{ diameter:'mm', length:'m', cutoffLevel:'m', toeLevel:'m', concreteGrade:'MPa', reinforcement:'cfg' },
+    formula:'V = (π × D² / 4) × L',
+    unit:'m³', standards:['s1','s9'],
+    status:'Approved', revision:'R03'
+  },
+  {
+    id:'b2', code:'BIM-FND-002', name:'Pile Cap',
+    discipline:'Foundation', ifc:'IfcFooting', geometry:'Prism',
+    materials:[ {id:'m1', qty:380, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.42, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.78, unit:'m³/m³', role:'Aggregate'}, {id:'m9', qty:80, unit:'kg/m³', role:'Main Bar'}, {id:'m8', qty:30, unit:'kg/m³', role:'Secondary'} ],
+    activities:['a4','a5','a6','a7','a8'],
+    manpower:[ {id:'p16', qty:1.2, unit:'day/m³'}, {id:'p10', qty:0.8, unit:'day/m³'}, {id:'p12', qty:0.8, unit:'day/m³'}, {id:'p14', qty:0.6, unit:'day/m³'} ],
+    equipment:[ {id:'e13', qty:0.05, unit:'hr/m³'}, {id:'e3', qty:0.05, unit:'hr/m³'}, {id:'e20', qty:0.1, unit:'hr/m³'} ],
+    tools:[], consumables:[ {id:'c1', qty:0.1, unit:'L/m²'} ],
+    tempWorks:[ {id:'tw1', qty:2.5, unit:'m²/m³'} ],
+    safety:['h2','h8','h12'], quality:['itp2','q1','q2','q3'], tests:['ts1','ts2','ts13'],
+    properties:{ length:'m', width:'m', depth:'m', topLevel:'m', concreteGrade:'MPa', reinforcement:'cfg' },
+    formula:'V = Length × Width × Depth',
+    unit:'m³', standards:['s1','s8'],
+    status:'Approved', revision:'R02'
+  },
+  {
+    id:'b3', code:'BIM-FND-003', name:'Isolated Footing',
+    discipline:'Foundation', ifc:'IfcFooting', geometry:'Prism',
+    materials:[ {id:'m1', qty:380, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.42, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.78, unit:'m³/m³', role:'Aggregate'}, {id:'m9', qty:70, unit:'kg/m³', role:'Main Bar'}, {id:'m8', qty:25, unit:'kg/m³', role:'Secondary'} ],
+    activities:['a4','a5','a6','a7','a8'],
+    manpower:[ {id:'p16', qty:1.0, unit:'day/m³'}, {id:'p10', qty:0.6, unit:'day/m³'}, {id:'p12', qty:0.6, unit:'day/m³'}, {id:'p14', qty:0.5, unit:'day/m³'} ],
+    equipment:[ {id:'e13', qty:0.05, unit:'hr/m³'}, {id:'e20', qty:0.1, unit:'hr/m³'} ],
+    tools:[], consumables:[ {id:'c1', qty:0.1, unit:'L/m²'} ],
+    tempWorks:[ {id:'tw1', qty:2.2, unit:'m²/m³'} ],
+    safety:['h2','h12'], quality:['itp2','q1','q2','q3'], tests:['ts1','ts2'],
+    properties:{ length:'m', width:'m', depth:'m', bottomLevel:'m', topLevel:'m', reinforcement:'cfg' },
+    formula:'V = Length × Width × Depth',
+    unit:'m³', standards:['s1'],
+    status:'Approved', revision:'R02'
+  },
+  {
+    id:'b4', code:'BIM-FND-004', name:'Strip Footing',
+    discipline:'Foundation', ifc:'IfcFooting', geometry:'Prism',
+    materials:[ {id:'m1', qty:350, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.45, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.75, unit:'m³/m³', role:'Aggregate'}, {id:'m8', qty:50, unit:'kg/m³', role:'Main Bar'} ],
+    activities:['a4','a5','a6','a7','a8'],
+    manpower:[ {id:'p16', qty:1.0, unit:'day/m³'}, {id:'p10', qty:0.5, unit:'day/m³'}, {id:'p12', qty:0.5, unit:'day/m³'}, {id:'p14', qty:0.5, unit:'day/m³'} ],
+    equipment:[ {id:'e13', qty:0.04, unit:'hr/m³'}, {id:'e20', qty:0.1, unit:'hr/m³'} ],
+    tools:[], consumables:[ {id:'c1', qty:0.1, unit:'L/m²'} ],
+    tempWorks:[ {id:'tw2', qty:2.0, unit:'m²/m³'} ],
+    safety:['h12'], quality:['q1','q2','q3'], tests:['ts1','ts2'],
+    properties:{ length:'m', width:'m', depth:'m', reinforcement:'cfg' },
+    formula:'V = Length × Width × Depth',
+    unit:'m³', standards:['s1'],
+    status:'Pending', revision:'R01'
+  },
+  {
+    id:'b5', code:'BIM-STR-001', name:'RC Column',
+    discipline:'Structural', ifc:'IfcColumn', geometry:'Prism',
+    materials:[ {id:'m1', qty:400, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.40, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.80, unit:'m³/m³', role:'Aggregate'}, {id:'m10', qty:120, unit:'kg/m³', role:'Main Bar'}, {id:'m8', qty:40, unit:'kg/m³', role:'Tie'} ],
+    activities:['a9','a10','a11'],
+    manpower:[ {id:'p10', qty:1.0, unit:'day/m³'}, {id:'p12', qty:1.5, unit:'day/m³'}, {id:'p14', qty:0.8, unit:'day/m³'}, {id:'p11', qty:1.0, unit:'day/m³'} ],
+    equipment:[ {id:'e13', qty:0.08, unit:'hr/m³'}, {id:'e3', qty:0.05, unit:'hr/m³'}, {id:'e20', qty:0.1, unit:'hr/m³'} ],
+    tools:[], consumables:[ {id:'c1', qty:0.15, unit:'L/m²'} ],
+    tempWorks:[ {id:'tw1', qty:6.0, unit:'m²/m³'} ],
+    safety:['h1','h2','h12','h8'], quality:['itp3','q1','q2','q3'], tests:['ts1','ts2','ts13'],
+    properties:{ width:'mm', depth:'mm', height:'m', bottomLevel:'m', topLevel:'m', reinforcement:'cfg' },
+    formula:'V = Width × Depth × Height',
+    unit:'m³', standards:['s1','s8'],
+    status:'Approved', revision:'R03'
+  },
+  {
+    id:'b6', code:'BIM-STR-002', name:'RC Beam',
+    discipline:'Structural', ifc:'IfcBeam', geometry:'Prism',
+    materials:[ {id:'m1', qty:400, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.40, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.80, unit:'m³/m³', role:'Aggregate'}, {id:'m9', qty:110, unit:'kg/m³', role:'Main Bar'}, {id:'m8', qty:35, unit:'kg/m³', role:'Stirrup'} ],
+    activities:['a12','a13','a14'],
+    manpower:[ {id:'p10', qty:0.9, unit:'day/m³'}, {id:'p12', qty:1.4, unit:'day/m³'}, {id:'p14', qty:0.8, unit:'day/m³'} ],
+    equipment:[ {id:'e13', qty:0.06, unit:'hr/m³'}, {id:'e3', qty:0.05, unit:'hr/m³'}, {id:'e20', qty:0.1, unit:'hr/m³'} ],
+    tools:[], consumables:[ {id:'c1', qty:0.15, unit:'L/m²'} ],
+    tempWorks:[ {id:'tw1', qty:5.5, unit:'m²/m³'}, {id:'tw4', qty:2.0, unit:'no/m³'} ],
+    safety:['h1','h12','h2'], quality:['itp4','q1','q2','q3'], tests:['ts1','ts2'],
+    properties:{ width:'mm', depth:'mm', length:'m', reinforcement:'cfg' },
+    formula:'V = Width × Depth × Length',
+    unit:'m³', standards:['s1','s8'],
+    status:'Approved', revision:'R03'
+  },
+  {
+    id:'b7', code:'BIM-STR-003', name:'RC Slab',
+    discipline:'Structural', ifc:'IfcSlab', geometry:'Prism',
+    materials:[ {id:'m1', qty:380, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.42, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.80, unit:'m³/m³', role:'Aggregate'}, {id:'m8', qty:80, unit:'kg/m³', role:'Main Bar'}, {id:'m7', qty:40, unit:'kg/m³', role:'Secondary'} ],
+    activities:['a15','a16','a17'],
+    manpower:[ {id:'p10', qty:0.7, unit:'day/m³'}, {id:'p12', qty:1.0, unit:'day/m³'}, {id:'p14', qty:0.7, unit:'day/m³'}, {id:'p15', qty:0.2, unit:'day/m³'} ],
+    equipment:[ {id:'e3', qty:0.04, unit:'hr/m³'}, {id:'e20', qty:0.08, unit:'hr/m³'} ],
+    tools:[], consumables:[ {id:'c1', qty:0.1, unit:'L/m²'} ],
+    tempWorks:[ {id:'tw1', qty:12, unit:'m²/m³'}, {id:'tw4', qty:1.5, unit:'no/m³'}, {id:'tw5', qty:1.5, unit:'m/m²'} ],
+    safety:['h1','h12'], quality:['itp5','q1','q2','q3'], tests:['ts1','ts2'],
+    properties:{ thickness:'mm', area:'m²', level:'m', reinforcement:'cfg' },
+    formula:'V = Area × Thickness',
+    unit:'m³', standards:['s1','s8'],
+    status:'Approved', revision:'R03'
+  },
+  {
+    id:'b8', code:'BIM-STR-004', name:'RC Shear Wall',
+    discipline:'Structural', ifc:'IfcWall', geometry:'Prism',
+    materials:[ {id:'m1', qty:400, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.40, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.80, unit:'m³/m³', role:'Aggregate'}, {id:'m10', qty:100, unit:'kg/m³', role:'Vertical'}, {id:'m8', qty:50, unit:'kg/m³', role:'Horizontal'} ],
+    activities:['a15','a16','a17'],
+    manpower:[ {id:'p10', qty:1.0, unit:'day/m³'}, {id:'p12', qty:1.2, unit:'day/m³'}, {id:'p14', qty:0.7, unit:'day/m³'} ],
+    equipment:[ {id:'e3', qty:0.05, unit:'hr/m³'}, {id:'e20', qty:0.1, unit:'hr/m³'} ],
+    tools:[], consumables:[ {id:'c1', qty:0.12, unit:'L/m²'} ],
+    tempWorks:[ {id:'tw1', qty:4.5, unit:'m²/m³'} ],
+    safety:['h1','h12'], quality:['q1','q2','q3'], tests:['ts1','ts2'],
+    properties:{ length:'m', thickness:'mm', height:'m', reinforcement:'cfg' },
+    formula:'V = Length × Thickness × Height',
+    unit:'m³', standards:['s1','s8'],
+    status:'Approved', revision:'R02'
+  },
+  {
+    id:'b9', code:'BIM-ARC-001', name:'Brick Masonry Wall',
+    discipline:'Architectural', ifc:'IfcWall', geometry:'Prism',
+    materials:[ {id:'m16', qty:500, unit:'no/m³', role:'Brick'}, {id:'m18', qty:0.25, unit:'m³/m³', role:'Mortar'}, {id:'m1', qty:80, unit:'kg/m³', role:'Cement'} ],
+    activities:['a18'],
+    manpower:[ {id:'p8', qty:0.7, unit:'day/m³'}, {id:'p9', qty:0.7, unit:'day/m³'} ],
+    equipment:[ {id:'e2', qty:0.02, unit:'hr/m³'} ],
+    tools:[], consumables:[],
+    tempWorks:[ {id:'tw5', qty:0.5, unit:'m/m³'} ],
+    safety:['h14','h2'], quality:['itp6'], tests:[],
+    properties:{ length:'m', thickness:'mm', height:'m' },
+    formula:'V = Length × Thickness × Height',
+    unit:'m³', standards:[],
+    status:'Approved', revision:'R02'
+  },
+  {
+    id:'b10', code:'BIM-ARC-002', name:'Block Masonry Wall',
+    discipline:'Architectural', ifc:'IfcWall', geometry:'Prism',
+    materials:[ {id:'m17', qty:62, unit:'no/m³', role:'Block'}, {id:'m19', qty:0.20, unit:'m³/m³', role:'Mortar'} ],
+    activities:['a18'],
+    manpower:[ {id:'p8', qty:0.5, unit:'day/m³'}, {id:'p9', qty:0.5, unit:'day/m³'} ],
+    equipment:[], tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h14'], quality:['itp6'], tests:[],
+    properties:{ length:'m', thickness:'mm', height:'m' },
+    formula:'V = Length × Thickness × Height',
+    unit:'m³', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b11', code:'BIM-ARC-003', name:'Cement Plaster',
+    discipline:'Architectural', ifc:'IfcCovering', geometry:'Layer',
+    materials:[ {id:'m20', qty:1, unit:'m²/m²', role:'Mortar'}, {id:'m1', qty:2.5, unit:'kg/m²', role:'Cement'} ],
+    activities:['a19'],
+    manpower:[ {id:'p8', qty:0.1, unit:'day/m²'}, {id:'p9', qty:0.1, unit:'day/m²'} ],
+    equipment:[], tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h13'], quality:[], tests:[],
+    properties:{ thickness:'mm', area:'m²' },
+    formula:'A = Length × Height',
+    unit:'m²', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b12', code:'BIM-ARC-004', name:'Floor Tile Finishing',
+    discipline:'Architectural', ifc:'IfcCovering', geometry:'Layer',
+    materials:[ {id:'m21', qty:1.05, unit:'m²/m²', role:'Tile'}, {id:'m1', qty:3.0, unit:'kg/m²', role:'Cement'} ],
+    activities:['a20'],
+    manpower:[ {id:'p25', qty:0.13, unit:'day/m²'}, {id:'p16', qty:0.05, unit:'day/m²'} ],
+    equipment:[], tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h14'], quality:[], tests:[],
+    properties:{ tile:'cfg', area:'m²' },
+    formula:'A = Length × Width',
+    unit:'m²', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b13', code:'BIM-ARC-005', name:'Wall Painting',
+    discipline:'Architectural', ifc:'IfcCovering', geometry:'Layer',
+    materials:[ {id:'m23', qty:0.12, unit:'L/m²', role:'Primer'}, {id:'m24', qty:0.15, unit:'L/m²', role:'Paint'} ],
+    activities:['a21'],
+    manpower:[ {id:'p24', qty:0.08, unit:'day/m²'} ],
+    equipment:[], tools:[], consumables:[],
+    tempWorks:[],
+    safety:[], quality:[], tests:[],
+    properties:{ coat:'cfg', area:'m²' },
+    formula:'A = Length × Height',
+    unit:'m²', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b14', code:'BIM-ROA-001', name:'Flexible Pavement (BC + DBM + WMM)',
+    discipline:'Road', ifc:'IfcPavement', geometry:'Layer',
+    materials:[ {id:'m33', qty:0.055, unit:'t/m²', role:'BC'}, {id:'m34', qty:0.105, unit:'t/m²', role:'DBM'}, {id:'m31', qty:0.15, unit:'m³/m²', role:'WMM'}, {id:'m32', qty:0.005, unit:'t/m²', role:'Tack Coat'} ],
+    activities:['a24','a25','a26','a27','a28'],
+    manpower:[ {id:'p7', qty:0.01, unit:'day/m²'}, {id:'p16', qty:0.05, unit:'day/m²'} ],
+    equipment:[ {id:'e8', qty:0.02, unit:'hr/m²'}, {id:'e28', qty:0.01, unit:'hr/m²'}, {id:'e9', qty:0.02, unit:'hr/m²'} ],
+    tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h15','h10','h11'], quality:['itp7','q9','q10'], tests:['ts9','ts10','ts11','ts12'],
+    properties:{ chainage:'m', width:'m', layers:'cfg' },
+    formula:'A = Length × Width; Qty = A × Layer Thickness × Density',
+    unit:'m²', standards:['s10','s11','s12'],
+    status:'Approved', revision:'R02'
+  },
+  {
+    id:'b15', code:'BIM-BRG-001', name:'Bridge Pier',
+    discipline:'Bridge', ifc:'IfcCivilElement', geometry:'Prism/Cylinder',
+    materials:[ {id:'m1', qty:400, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.40, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.80, unit:'m³/m³', role:'Aggregate'}, {id:'m10', qty:100, unit:'kg/m³', role:'Main Bar'}, {id:'m9', qty:50, unit:'kg/m³', role:'Tie'} ],
+    activities:['a29'],
+    manpower:[ {id:'p10', qty:1.2, unit:'day/m³'}, {id:'p12', qty:1.5, unit:'day/m³'}, {id:'p14', qty:0.8, unit:'day/m³'} ],
+    equipment:[ {id:'e14', qty:0.08, unit:'hr/m³'}, {id:'e3', qty:0.05, unit:'hr/m³'} ],
+    tools:[], consumables:[ {id:'c1', qty:0.12, unit:'L/m²'} ],
+    tempWorks:[ {id:'tw1', qty:4.0, unit:'m²/m³'} ],
+    safety:['h1','h2','h8','h12'], quality:['itp8','q1','q2','q3'], tests:['ts1','ts2'],
+    properties:{ diameter:'mm', height:'m', foundationLevel:'m', topLevel:'m', reinforcement:'cfg' },
+    formula:'V = (π × D² / 4) × H',
+    unit:'m³', standards:['s1','s11'],
+    status:'Approved', revision:'R02'
+  },
+  {
+    id:'b16', code:'BIM-BRG-002', name:'Pre-stressed Box Girder',
+    discipline:'Bridge', ifc:'IfcBeam', geometry:'Section',
+    materials:[ {id:'m1', qty:450, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.38, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.82, unit:'m³/m³', role:'Aggregate'}, {id:'m11', qty:140, unit:'kg/m³', role:'Main Bar'}, {id:'m13', qty:3, unit:'L/m³', role:'Admixture'} ],
+    activities:['a29'],
+    manpower:[ {id:'p10', qty:1.5, unit:'day/m³'}, {id:'p14', qty:1.0, unit:'day/m³'}, {id:'p21', qty:0.5, unit:'day/m³'} ],
+    equipment:[ {id:'e3', qty:0.05, unit:'hr/m³'}, {id:'e17', qty:0.1, unit:'hr/m³'} ],
+    tools:[], consumables:[],
+    tempWorks:[ {id:'tw8', qty:0.5, unit:'m/m³'} ],
+    safety:['h1','h2','h7'], quality:['q1','q2','q3','q11'], tests:['ts1','ts2','ts13'],
+    properties:{ span:'m', width:'mm', depth:'mm', reinforcement:'cfg' },
+    formula:'V = Section Area × Length',
+    unit:'m³', standards:['s1','s11','s8'],
+    status:'Draft', revision:'R00'
+  },
+  {
+    id:'b17', code:'BIM-DRN-001', name:'Box Culvert',
+    discipline:'Drainage', ifc:'IfcCivilElement', geometry:'Prism',
+    materials:[ {id:'m1', qty:380, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.42, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.80, unit:'m³/m³', role:'Aggregate'}, {id:'m9', qty:90, unit:'kg/m³', role:'Main Bar'} ],
+    activities:['a30'],
+    manpower:[ {id:'p10', qty:1.0, unit:'day/m³'}, {id:'p12', qty:1.0, unit:'day/m³'}, {id:'p14', qty:0.8, unit:'day/m³'} ],
+    equipment:[ {id:'e3', qty:0.05, unit:'hr/m³'}, {id:'e20', qty:0.1, unit:'hr/m³'} ],
+    tools:[], consumables:[ {id:'c1', qty:0.1, unit:'L/m²'} ],
+    tempWorks:[ {id:'tw1', qty:3.5, unit:'m²/m³'} ],
+    safety:['h4','h5','h1'], quality:['q1','q2','q3'], tests:['ts1','ts2'],
+    properties:{ length:'m', width:'mm', height:'mm', wallThickness:'mm' },
+    formula:'V = Wall + Slab sections',
+    unit:'m³', standards:['s1','s11'],
+    status:'Approved', revision:'R02'
+  },
+  {
+    id:'b18', code:'BIM-DRN-002', name:'RCC Drainage Pipe',
+    discipline:'Drainage', ifc:'IfcPipeSegment', geometry:'Cylinder',
+    materials:[ {id:'m28', qty:1, unit:'m/m', role:'Pipe'} ],
+    activities:['a31'],
+    manpower:[ {id:'p16', qty:0.05, unit:'day/m'}, {id:'p23', qty:0.05, unit:'day/m'} ],
+    equipment:[ {id:'e6', qty:0.02, unit:'hr/m'} ],
+    tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h15','h4'], quality:[], tests:[],
+    properties:{ diameter:'mm', length:'m', invertLevel:'m' },
+    formula:'L = Total Length',
+    unit:'m', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b19', code:'BIM-DRN-003', name:'Manhole',
+    discipline:'Drainage', ifc:'IfcSanitaryTerminal', geometry:'Prism',
+    materials:[ {id:'m1', qty:380, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.42, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.80, unit:'m³/m³', role:'Aggregate'}, {id:'m30', qty:1, unit:'no/ea', role:'Cover'} ],
+    activities:['a32'],
+    manpower:[ {id:'p8', qty:1.0, unit:'day/ea'}, {id:'p23', qty:0.5, unit:'day/ea'} ],
+    equipment:[], tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h5','h4'], quality:[], tests:[],
+    properties:{ width:'mm', depth:'mm', type:'cfg' },
+    formula:'Count by Each',
+    unit:'no', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b20', code:'BIM-ERW-001', name:'Embankment',
+    discipline:'Earthworks', ifc:'IfcEarthworks', geometry:'Prism',
+    materials:[ {id:'m6', qty:1.0, unit:'m³/m³', role:'Fill'} ],
+    activities:['a33'],
+    manpower:[ {id:'p7', qty:0.005, unit:'day/m³'}, {id:'p16', qty:0.01, unit:'day/m³'} ],
+    equipment:[ {id:'e4', qty:0.015, unit:'hr/m³'}, {id:'e7', qty:0.008, unit:'hr/m³'}, {id:'e9', qty:0.012, unit:'hr/m³'} ],
+    tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h15','h10','h11'], quality:['q9'], tests:['ts9','ts10'],
+    properties:{ length:'m', topWidth:'m', height:'m', sideSlope:'cfg' },
+    formula:'V = ((B + b) × H / 2) × L',
+    unit:'m³', standards:['s11'],
+    status:'Approved', revision:'R02'
+  },
+  {
+    id:'b21', code:'BIM-GEO-001', name:'Geotextile Layer',
+    discipline:'Earthworks', ifc:'IfcCovering', geometry:'Layer',
+    materials:[ {id:'m36', qty:1.10, unit:'m²/m²', role:'Geotextile'} ],
+    activities:['a34'],
+    manpower:[ {id:'p16', qty:0.01, unit:'day/m²'} ],
+    equipment:[ {id:'e11', qty:0.005, unit:'hr/m²'} ],
+    tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h14'], quality:[], tests:[],
+    properties:{ area:'m²', overlap:'cfg' },
+    formula:'A = Length × Width × (1 + overlap%)',
+    unit:'m²', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b22', code:'BIM-MEP-001', name:'Electrical Conduit & Wiring',
+    discipline:'MEP', ifc:'IfcCableCarrierSegment', geometry:'Linear',
+    materials:[ {id:'m39', qty:1.05, unit:'m/m', role:'Conduit'}, {id:'m38', qty:1.05, unit:'m/m', role:'Cable'}, {id:'m40', qty:0.05, unit:'no/m', role:'Switch'} ],
+    activities:['a22'],
+    manpower:[ {id:'p22', qty:0.05, unit:'day/m'} ],
+    equipment:[], tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h9'], quality:[], tests:[],
+    properties:{ length:'m', cable:'cfg' },
+    formula:'L = Total Length',
+    unit:'m', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b23', code:'BIM-MEP-002', name:'Plumbing (Pipes & Fittings)',
+    discipline:'MEP', ifc:'IfcPipeSegment', geometry:'Linear',
+    materials:[ {id:'m26', qty:1.02, unit:'m/m', role:'Pipe'}, {id:'m27', qty:0.5, unit:'m/m', role:'Pipe'} ],
+    activities:['a23'],
+    manpower:[ {id:'p23', qty:0.06, unit:'day/m'} ],
+    equipment:[], tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h9'], quality:[], tests:[],
+    properties:{ length:'m', diameter:'mm' },
+    formula:'L = Total Length',
+    unit:'m', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b24', code:'BIM-LSC-001', name:'Landscape Tree Planting',
+    discipline:'Landscaping', ifc:'IfcPlant', geometry:'Point',
+    materials:[ {id:'m3', qty:0.5, unit:'m³/ea', role:'Topsoil'} ],
+    activities:['a35'],
+    manpower:[ {id:'p16', qty:0.2, unit:'day/ea'} ],
+    equipment:[], tools:[], consumables:[],
+    tempWorks:[],
+    safety:[], quality:[], tests:[],
+    properties:{ treeType:'cfg', size:'cfg' },
+    formula:'Count by Each',
+    unit:'no', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b25', code:'BIM-MAR-001', name:'Marine Revetment (RCC Block)',
+    discipline:'Marine', ifc:'IfcCivilElement', geometry:'Layer',
+    materials:[ {id:'m1', qty:380, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.42, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.80, unit:'m³/m³', role:'Aggregate'}, {id:'m36', qty:1.1, unit:'m²/m²', role:'Geotextile'} ],
+    activities:['a17'],
+    manpower:[ {id:'p8', qty:0.5, unit:'day/m³'}, {id:'p16', qty:0.5, unit:'day/m³'} ],
+    equipment:[ {id:'e14', qty:0.05, unit:'hr/m³'} ],
+    tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h1','h2','h8'], quality:['q3'], tests:['ts1','ts2'],
+    properties:{ thickness:'mm', area:'m²' },
+    formula:'V = Area × Thickness',
+    unit:'m³', standards:['s1'],
+    status:'Pending', revision:'R01'
+  },
+  {
+    id:'b26', code:'BIM-FND-005', name:'Retaining Wall (Cantilever)',
+    discipline:'Foundation', ifc:'IfcRetainingWall', geometry:'Prism',
+    materials:[ {id:'m1', qty:380, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.42, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.80, unit:'m³/m³', role:'Aggregate'}, {id:'m9', qty:80, unit:'kg/m³', role:'Main Bar'} ],
+    activities:['a4','a5','a6','a7','a8'],
+    manpower:[ {id:'p10', qty:0.9, unit:'day/m³'}, {id:'p12', qty:1.0, unit:'day/m³'}, {id:'p14', qty:0.7, unit:'day/m³'} ],
+    equipment:[ {id:'e20', qty:0.1, unit:'hr/m³'} ],
+    tools:[], consumables:[],
+    tempWorks:[ {id:'tw1', qty:3.5, unit:'m²/m³'} ],
+    safety:['h4','h12'], quality:['q1','q2','q3'], tests:['ts1','ts2'],
+    properties:{ length:'m', height:'m', baseWidth:'mm', stemWidth:'mm' },
+    formula:'V = Stem + Base sections',
+    unit:'m³', standards:['s1'],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b27', code:'BIM-ARC-006', name:'RC Staircase',
+    discipline:'Architectural', ifc:'IfcStair', geometry:'Prism',
+    materials:[ {id:'m1', qty:400, unit:'kg/m³', role:'Cement'}, {id:'m3', qty:0.40, unit:'m³/m³', role:'Sand'}, {id:'m4', qty:0.80, unit:'m³/m³', role:'Aggregate'}, {id:'m8', qty:60, unit:'kg/m³', role:'Main Bar'} ],
+    activities:['a15','a16','a17'],
+    manpower:[ {id:'p10', qty:0.9, unit:'day/m³'}, {id:'p12', qty:1.2, unit:'day/m³'}, {id:'p14', qty:0.7, unit:'day/m³'} ],
+    equipment:[ {id:'e3', qty:0.05, unit:'hr/m³'} ],
+    tools:[], consumables:[],
+    tempWorks:[ {id:'tw1', qty:5.0, unit:'m²/m³'} ],
+    safety:['h1','h2','h12'], quality:['q1','q2','q3'], tests:['ts1','ts2'],
+    properties:{ width:'mm', rise:'mm', tread:'mm', thickness:'mm' },
+    formula:'V = Waist × Length × Thickness',
+    unit:'m³', standards:['s1'],
+    status:'Approved', revision:'R02'
+  },
+  {
+    id:'b28', code:'BIM-ARC-007', name:'Door Frame & Shutter',
+    discipline:'Architectural', ifc:'IfcDoor', geometry:'Opening',
+    materials:[ {id:'m41', qty:1, unit:'m/ea', role:'Frame'}, {id:'m42', qty:1, unit:'no/ea', role:'Shutter'} ],
+    activities:['a36'],
+    manpower:[ {id:'p12', qty:0.3, unit:'day/ea'} ],
+    equipment:[], tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h14'], quality:[], tests:[],
+    properties:{ width:'mm', height:'mm' },
+    formula:'Count by Each',
+    unit:'no', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b29', code:'BIM-ARC-008', name:'Aluminium Window',
+    discipline:'Architectural', ifc:'IfcWindow', geometry:'Opening',
+    materials:[ {id:'m43', qty:1, unit:'no/ea', role:'Frame'}, {id:'m44', qty:1, unit:'m²/ea', role:'Glass'} ],
+    activities:['a36'],
+    manpower:[ {id:'p12', qty:0.4, unit:'day/ea'} ],
+    equipment:[], tools:[], consumables:[],
+    tempWorks:[],
+    safety:['h14','h2'], quality:[], tests:[],
+    properties:{ width:'mm', height:'mm' },
+    formula:'Count by Each',
+    unit:'no', standards:[],
+    status:'Approved', revision:'R01'
+  },
+  {
+    id:'b30', code:'BIM-STR-005', name:'Concrete Curing',
+    discipline:'Structural', ifc:'IfcBuildingElementProxy', geometry:'Layer',
+    materials:[ {id:'m15', qty:0.2, unit:'L/m²', role:'Curing Compound'} ],
+    activities:['a35'],
+    manpower:[ {id:'p16', qty:0.02, unit:'day/m²'} ],
+    equipment:[ {id:'e22', qty:0.01, unit:'hr/m²'} ],
+    tools:[], consumables:[],
+    tempWorks:[],
+    safety:[], quality:[], tests:[],
+    properties:{ area:'m²', duration:'day' },
+    formula:'A = Exposed Concrete Area',
+    unit:'m²', standards:['s1'],
+    status:'Approved', revision:'R01'
+  },
+];
+
+/* ----------------------- DATA: ACTIVITIES ----------------------- */
+const ACTIVITIES = [
+  { id:'a1',  code:'ACT-PIL-001', name:'Bored Pile Installation',            elements:['b1'], prerequisites:[], method:'Bauer BG-25 rotary boring' },
+  { id:'a2',  code:'ACT-PIL-002', name:'Pile Cap Concrete',                   elements:['b2'], prerequisites:['a1','a3'], method:'Conventional pour' },
+  { id:'a3',  code:'ACT-PIL-003', name:'Pile Head Treatment',                elements:['b1'], prerequisites:['a1'], method:'Chipping + cap preparation' },
+  { id:'a4',  code:'ACT-EXC-001', name:'Excavation for Foundation',           elements:['b2','b3','b4','b26'], prerequisites:[], method:'Mechanical excavation' },
+  { id:'a5',  code:'ACT-BLD-001', name:'Blinding Concrete (PCC)',            elements:['b2','b3','b4','b26'], prerequisites:['a4'], method:'Lean mix PCC' },
+  { id:'a6',  code:'ACT-REB-001', name:'Footing Reinforcement',              elements:['b2','b3','b4','b26'], prerequisites:['a5'], method:'Site fabrication' },
+  { id:'a7',  code:'ACT-FRM-001', name:'Footing Formwork',                   elements:['b2','b3','b4','b26'], prerequisites:['a5'], method:'Steel panel formwork' },
+  { id:'a8',  code:'ACT-CON-001', name:'Footing Concrete Pour',              elements:['b2','b3','b4','b26'], prerequisites:['a6','a7'], method:'Pump placement' },
+  { id:'a9',  code:'ACT-REB-002', name:'Column Reinforcement',               elements:['b5'], prerequisites:['a8'], method:'Coupled/lap splices' },
+  { id:'a10', code:'ACT-FRM-002', name:'Column Formwork',                    elements:['b5'], prerequisites:['a9'], method:'Steel panel + yoke' },
+  { id:'a11', code:'ACT-CON-002', name:'Column Concrete Pour',               elements:['b5'], prerequisites:['a10'], method:'Pump + vibrator' },
+  { id:'a12', code:'ACT-REB-003', name:'Beam Reinforcement',                 elements:['b6'], prerequisites:['a10'], method:'Site fabrication' },
+  { id:'a13', code:'ACT-FRM-003', name:'Beam & Slab Formwork',               elements:['b6','b7'], prerequisites:['a10'], method:'Cuplock + ply' },
+  { id:'a14', code:'ACT-CON-003', name:'Beam Concrete Pour',                 elements:['b6'], prerequisites:['a12','a13'], method:'Pump placement' },
+  { id:'a15', code:'ACT-REB-004', name:'Slab Reinforcement',                 elements:['b7','b8','b27'], prerequisites:['a13'], method:'Layered fixing' },
+  { id:'a16', code:'ACT-FRM-004', name:'Wall / Shear-wall Formwork',         elements:['b8','b9','b10'], prerequisites:['a8'], method:'Steel panel system' },
+  { id:'a17', code:'ACT-CON-004', name:'Slab / Wall Concrete Pour',          elements:['b7','b8','b25','b27'], prerequisites:['a15','a16'], method:'Pump placement' },
+  { id:'a18', code:'ACT-MAS-001', name:'Brick / Block Masonry',               elements:['b9','b10'], prerequisites:['a11','a14'], method:'Cement mortar bed' },
+  { id:'a19', code:'ACT-PLS-001', name:'Plastering',                          elements:['b11'], prerequisites:['a18'], method:'Cement mortar 1:4' },
+  { id:'a20', code:'ACT-TIL-001', name:'Floor / Wall Tile Fixing',          elements:['b12'], prerequisites:['a17','a19'], method:'Thin-set adhesive' },
+  { id:'a21', code:'ACT-PNT-001', name:'Wall Painting',                      elements:['b13'], prerequisites:['a19'], method:'Primer + 2 coats emulsion' },
+  { id:'a22', code:'ACT-ELE-001', name:'Electrical Conduit & Wiring',        elements:['b22'], prerequisites:['a17'], method:'Concealed conduit' },
+  { id:'a23', code:'ACT-PLM-001', name:'Plumbing Pipe Installation',         elements:['b23'], prerequisites:['a17'], method:'Solvent/PVC welding' },
+  { id:'a24', code:'ACT-ERW-001', name:'Earthwork Excavation (Road)',         elements:['b14','b20'], prerequisites:[], method:'Mechanical excavation' },
+  { id:'a25', code:'ACT-ERW-002', name:'Subgrade Preparation',               elements:['b14','b20'], prerequisites:['a24'], method:'Grading + compaction' },
+  { id:'a26', code:'ACT-ROA-001', name:'GSB / WMM Laying',                   elements:['b14'], prerequisites:['a25'], method:'Motor grader + roller' },
+  { id:'a27', code:'ACT-ROA-002', name:'Prime / Tack Coat Application',      elements:['b14'], prerequisites:['a26'], method:'Pressure sprayer' },
+  { id:'a28', code:'ACT-ROA-003', name:'DBM + BC Laying',                     elements:['b14'], prerequisites:['a27'], method:'Paver finisher' },
+  { id:'a29', code:'ACT-BRG-001', name:'Bridge Pier / Girder Construction',   elements:['b15','b16'], prerequisites:['a1'], method:'Cast in-situ / precast' },
+  { id:'a30', code:'ACT-DRN-001', name:'Box Culvert Construction',           elements:['b17'], prerequisites:['a4'], method:'Cast in-situ' },
+  { id:'a31', code:'ACT-DRN-002', name:'Drainage Pipe Laying',               elements:['b18'], prerequisites:['a24'], method:'Trench + bed + joint' },
+  { id:'a32', code:'ACT-DRN-003', name:'Manhole Construction',               elements:['b19'], prerequisites:['a31'], method:'Brick/Block + RCC' },
+  { id:'a33', code:'ACT-ERW-003', name:'Embankment Construction',             elements:['b20'], prerequisites:['a24'], method:'Layered fill + compaction' },
+  { id:'a34', code:'ACT-GEO-001', name:'Geotextile Installation',             elements:['b21'], prerequisites:['a25'], method:'Lay + overlap' },
+  { id:'a35', code:'ACT-CUR-001', name:'Concrete Curing',                     elements:['b24','b30'], prerequisites:['a8','a11','a14','a17'], method:'Ponding/spray compound' },
+  { id:'a36', code:'ACT-FNS-001', name:'Door / Window Installation',         elements:['b28','b29'], prerequisites:['a19'], method:'Frame fixing + sealing' },
+];
+
+/* ----------------------- DATA: BOQ & CLASSIFICATION ----------------------- */
+const BOQ_CLASSES = [
+  { code:'01',   title:'Preliminaries',                children:[ {code:'01.01',title:'Mobilization'},{code:'01.02',title:'Site Establishment'},{code:'01.03',title:'Temporary Facilities'} ] },
+  { code:'02',   title:'Site Preparation',              children:[ {code:'02.01',title:'Clearing'},{code:'02.02',title:'Excavation'},{code:'02.03',title:'Backfilling'} ] },
+  { code:'03',   title:'Foundation',                    children:[ {code:'03.01',title:'Piling',map:'b1'},{code:'03.02',title:'Pile Caps',map:'b2'},{code:'03.03',title:'Ground Beams',map:'b6'} ] },
+  { code:'04',   title:'Structural Work',               children:[ {code:'04.01',title:'Concrete',map:'b5,b6,b7,b8'},{code:'04.02',title:'Reinforcement',map:'b5,b6,b7'},{code:'04.03',title:'Formwork'} ] },
+  { code:'05',   title:'Architectural Work',             children:[ {code:'05.01',title:'Masonry',map:'b9,b10'},{code:'05.02',title:'Plastering',map:'b11'},{code:'05.03',title:'Floor Finishes',map:'b12'},{code:'05.04',title:'Painting',map:'b13'} ] },
+  { code:'06',   title:'Electrical Work',                children:[ {code:'06.01',title:'Conduit & Wiring',map:'b22'} ] },
+  { code:'07',   title:'Mechanical Work',                children:[ {code:'07.01',title:'Plumbing',map:'b23'} ] },
+  { code:'08',   title:'Fire Protection',                children:[] },
+  { code:'09',   title:'External Infrastructure',        children:[ {code:'09.01',title:'Roads',map:'b14'},{code:'09.02',title:'Drainage',map:'b17,b18,b19'},{code:'09.03',title:'Bridges',map:'b15,b16'},{code:'09.04',title:'Embankment',map:'b20'} ] },
+  { code:'10',   title:'Landscaping',                     children:[ {code:'10.01',title:'Planting',map:'b24'} ] },
+];
+
+/* ----------------------- DATA: AI PROPOSALS ----------------------- */
+const AI_PROPOSALS = [
+  { id:'ai1', code:'AI-PRP-0001', category:'BIM Element', title:'Suggested: Pre-cast Pile Segment Element',  status:'Pending',  confidence:0.92 },
+  { id:'ai2', code:'AI-PRP-0002', category:'Material',    title:'Suggested: Geopolymer Cement alternative',  status:'Pending',  confidence:0.78 },
+  { id:'ai3', code:'AI-PRP-0003', category:'Activity',    title:'Suggested missing activity: Concrete Pump Setup', status:'Draft', confidence:0.88 },
+  { id:'ai4', code:'AI-PRP-0004', category:'Safety',      title:'Suggested hazard: Hand-arm Vibration for Breaker', status:'Approved', confidence:0.95 },
+  { id:'ai5', code:'AI-PRP-0005', category:'Quality',     title:'Suggested ITP: Curing Quality Inspection',  status:'Pending', confidence:0.71 },
+  { id:'ai6', code:'AI-PRP-0006', category:'Material',    title:'Duplicate detected: PPC Cement supplier variants', status:'Rejected', confidence:0.65 },
+];
+
+/* ----------------------- DATA: APPROVAL QUEUE ----------------------- */
+const APPROVALS = [
+  { id:'ap1', code:'APR-0001', item:'Strip Footing BIM-FND-004',       type:'BIM Element',  status:'Pending Review',  submittedBy:'K. Perera', submittedOn:'2024-01-15', revision:'R01' },
+  { id:'ap2', code:'APR-0002', item:'Marine Revetment BIM-MAR-001',    type:'BIM Element',  status:'Pending Review',  submittedBy:'M. Fernando',submittedOn:'2024-01-16', revision:'R01' },
+  { id:'ap3', code:'APR-0003', item:'Pre-stressed Box Girder BIM-BRG-002', type:'BIM Element', status:'Draft',          submittedBy:'S. Jayawardena', submittedOn:'2024-01-17', revision:'R00' },
+  { id:'ap4', code:'APR-0004', item:'AI Proposal AI-PRP-0001',         type:'AI Proposal',  status:'Pending Review',  submittedBy:'AI Engine', submittedOn:'2024-01-18', revision:'—' },
+  { id:'ap5', code:'APR-0005', item:'Material MAT-ADM-002 update',     type:'Material',     status:'Pending Review',  submittedBy:'R. Senanayake', submittedOn:'2024-01-18', revision:'R02' },
+  { id:'ap6', code:'APR-0006', item:'Activity ACT-CUR-001 method',     type:'Activity',     status:'Pending Review',  submittedBy:'K. Perera', submittedOn:'2024-01-19', revision:'R02' },
+  { id:'ap7', code:'APR-0007', item:'New Hazard: Hand-arm Vibration',   type:'Safety',       status:'Pending Review',  submittedBy:'AI Engine', submittedOn:'2024-01-19', revision:'R00' },
+];
+
+/* ----------------------- DATA: AUDIT LOG ----------------------- */
+const AUDIT_LOG = [
+  { id:'au1', ts:'2024-01-19 14:32:18', user:'R. Senanayake', action:'Approved', target:'BIM-FND-001 R03', category:'BIM Element' },
+  { id:'au2', ts:'2024-01-19 11:14:02', user:'M. Fernando',   action:'Created',  target:'BIM-MAR-001 R01', category:'BIM Element' },
+  { id:'au3', ts:'2024-01-18 16:45:55', user:'K. Perera',     action:'Edited',   target:'ACT-CUR-001',    category:'Activity' },
+  { id:'au4', ts:'2024-01-18 09:22:31', user:'AI Engine',    action:'Proposed', target:'AI-PRP-0001',    category:'AI Proposal' },
+  { id:'au5', ts:'2024-01-17 18:08:10', user:'S. Jayawardena',action:'Rejected', target:'AI-PRP-0006',    category:'AI Proposal' },
+  { id:'au6', ts:'2024-01-17 14:55:42', user:'R. Senanayake', action:'Approved', target:'BIM-STR-003 R03', category:'BIM Element' },
+  { id:'au7', ts:'2024-01-16 11:23:09', user:'M. Fernando',   action:'Submitted',target:'APR-0002',       category:'Approval' },
+  { id:'au8', ts:'2024-01-16 08:42:00', user:'K. Perera',     action:'Created',  target:'BIM-FND-004 R01',category:'BIM Element' },
+  { id:'au9', ts:'2024-01-15 17:11:34', user:'R. Senanayake', action:'Approved', target:'ITP-001 R02',    category:'Quality' },
+  { id:'au10',ts:'2024-01-15 10:50:18', user:'AI Engine',    action:'Proposed', target:'AI-PRP-0004',    category:'AI Proposal' },
+];
+
+/* ----------------------- INDEX MAPS ----------------------- */
+const lookups = {
+  material: Object.fromEntries(MATERIALS.map(m => [m.id, m])),
+  manpower: Object.fromEntries(MANPOWER.map(p => [p.id, p])),
+  equipment: Object.fromEntries(EQUIPMENT.map(e => [e.id, e])),
+  tool: Object.fromEntries(TOOLS.map(t => [t.id, t])),
+  consumable: Object.fromEntries(CONSUMABLES.map(c => [c.id, c])),
+  tempwork: Object.fromEntries(TEMPWORKS.map(t => [t.id, t])),
+  activity: Object.fromEntries(ACTIVITIES.map(a => [a.id, a])),
+  hazard: Object.fromEntries(SAFETY_HAZARDS.map(h => [h.id, h])),
+  control: Object.fromEntries(RISK_CONTROLS.map(c => [c.id, c])),
+  ppe: Object.fromEntries(PPE.map(p => [p.id, p])),
+  qc: Object.fromEntries(QC_CHECKLISTS.map(q => [q.id, q])),
+  itp: Object.fromEntries(ITP_TEMPLATES.map(i => [i.id, i])),
+  test: Object.fromEntries(TESTS.map(t => [t.id, t])),
+  standard: Object.fromEntries(STANDARDS.map(s => [s.id, s])),
+  unit: Object.fromEntries(UNITS.map(u => [u.id, u])),
+  bim: Object.fromEntries(BIM_ELEMENTS.map(b => [b.id, b])),
+};
+
+/* ----------------------- STATE & ROUTER ----------------------- */
+const state = {
+  currentView: 'dashboard',
+  selectedBim: 'b1',
+  searchQuery: '',
+};
+
+const VIEWS = {
+  dashboard:    { title:'Dashboard',                sub:'Construction master database overview & system health' },
+  relationships:{ title:'Relationship Explorer',    sub:'Interactive graph of BIM elements and their linked master data' },
+  bim:          { title:'BIM Element Library',       sub:'Configurable BIM object templates with material, activity, safety, QC and testing relationships' },
+  materials:    { title:'Construction Materials',   sub:'Approved material catalogue with technical attributes and standards' },
+  manpower:     { title:'Manpower & Labour',         sub:'Skilled, unskilled and engineering personnel categories' },
+  equipment:    { title:'Equipment & Machinery',    sub:'Construction plant, machinery and lifting equipment' },
+  tools:        { title:'Tools & Consumables',       sub:'Hand tools, power tools, consumables and abrasives' },
+  tempworks:    { title:'Temporary Works',           sub:'Formwork, scaffold, props and temporary structures' },
+  activities:   { title:'Construction Activities',   sub:'Activity library with linked elements, resources and prerequisites' },
+  safety:       { title:'Safety Library',           sub:'Hazards, risk controls and PPE relationships' },
+  quality:      { title:'Quality Control',           sub:'Inspection checklists and ITP templates' },
+  testing:      { title:'Testing & Laboratory',      sub:'Material, workmanship and NDT test definitions' },
+  standards:    { title:'Standards & Units',         sub:'Technical standards and measurement units' },
+  approval:     { title:'Approval Centre',            sub:'Master data governance — drafts, reviews, approvals' },
+  ai:           { title:'AI Generation Centre',       sub:'AI-proposed master data records awaiting review' },
+  audit:        { title:'Audit Centre',               sub:'Immutable history of all changes to master records' },
+};
+
+/* ----------------------- HELPERS ----------------------- */
+function el(id) { return document.getElementById(id); }
+function $(sel, ctx=document) { return ctx.querySelector(sel); }
+function $$(sel, ctx=document) { return [...ctx.querySelectorAll(sel)]; }
+
+function statusBadge(status) {
+  const map = { 'Draft':'badge-draft','Pending':'badge-pending','Pending Review':'badge-pending','Approved':'badge-approved','Rejected':'badge-rejected','Obsolete':'badge-obsolete','Submitted':'badge-pending' };
+  return `<span class="chip ${map[status] || 'badge-draft'}">${status}</span>`;
+}
+
+function catChip(cat, label) {
+  const map = {
+    bim:'cat-bim', mat:'cat-mat', man:'cat-man', equip:'cat-equip', tool:'cat-tool',
+    cons:'cat-cons', temp:'cat-temp', act:'cat-act', safe:'cat-safe', qc:'cat-qc',
+    test:'cat-test', std:'cat-std', unit:'cat-unit', boq:'cat-boq', norm:'cat-norm', clas:'cat-clas'
+  };
+  return `<span class="chip ${map[cat]||'cat-std'}">${label}</span>`;
+}
+
+function toast(msg) {
+  el('toastMsg').textContent = msg;
+  el('toast').classList.remove('hidden');
+  setTimeout(()=>el('toast').classList.add('hidden'), 2200);
+}
+
+function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+
+/* ----------------------- VIEW: DASHBOARD ----------------------- */
+function viewDashboard() {
+  const totalRecords =
+    BIM_ELEMENTS.length + MATERIALS.length + MANPOWER.length + EQUIPMENT.length +
+    TOOLS.length + CONSUMABLES.length + TEMPWORKS.length + ACTIVITIES.length +
+    SAFETY_HAZARDS.length + RISK_CONTROLS.length + PPE.length +
+    QC_CHECKLISTS.length + ITP_TEMPLATES.length + TESTS.length +
+    STANDARDS.length + UNITS.length;
+
+  el('recCount').textContent = totalRecords.toLocaleString() + ' records';
+
+  const stats = [
+    { label:'BIM Elements',     val:BIM_ELEMENTS.length,    icon:'box',            color:'#3730a3', cat:'bim',   view:'bim' },
+    { label:'Materials',        val:MATERIALS.length,       icon:'package',        color:'#9a3412', cat:'mat',   view:'materials' },
+    { label:'Manpower',         val:MANPOWER.length,         icon:'users',           color:'#166534', cat:'man',   view:'manpower' },
+    { label:'Equipment',        val:EQUIPMENT.length,        icon:'truck',           color:'#991b1b', cat:'equip', view:'equipment' },
+    { label:'Tools',             val:TOOLS.length,            icon:'wrench',          color:'#854d0e', cat:'tool',  view:'tools' },
+    { label:'Consumables',      val:CONSUMABLES.length,      icon:'droplets',        color:'#6b21a8', cat:'cons',  view:'tools' },
+    { label:'Temporary Works',  val:TEMPWORKS.length,        icon:'construction',    color:'#9d174d', cat:'temp',  view:'tempworks' },
+    { label:'Activities',        val:ACTIVITIES.length,       icon:'list-checks',     color:'#1e40af', cat:'act',   view:'activities' },
+    { label:'Safety Hazards',   val:SAFETY_HAZARDS.length,   icon:'shield-alert',    color:'#991b1b', cat:'safe',  view:'safety' },
+    { label:'QC Checklists',    val:QC_CHECKLISTS.length+ITP_TEMPLATES.length, icon:'badge-check', color:'#155e75', cat:'qc',  view:'quality' },
+    { label:'Test Types',        val:TESTS.length,            icon:'flask-conical',   color:'#115e59', cat:'test',  view:'testing' },
+    { label:'Standards',         val:STANDARDS.length,        icon:'book-open',       color:'#334155', cat:'std',   view:'standards' },
+  ];
+
+  // Relationship density: total links across BIM elements
+  let totalLinks = 0;
+  BIM_ELEMENTS.forEach(b => {
+    totalLinks += (b.materials?.length||0) + (b.activities?.length||0) + (b.manpower?.length||0) +
+                  (b.equipment?.length||0) + (b.safety?.length||0) + (b.quality?.length||0) +
+                  (b.tests?.length||0) + (b.tempWorks?.length||0) + (b.standards?.length||0) +
+                  (b.consumables?.length||0) + (b.tools?.length||0);
+  });
+
+  // Approval status counts
+  const apprCounts = APPROVALS.reduce((acc,a)=>{ acc[a.status]=(acc[a.status]||0)+1; return acc; }, {});
+
+  // Recent audit (last 5)
+  const recent = AUDIT_LOG.slice(0,5);
+
+  return `
+    <div class="space-y-6">
+      <!-- Hero -->
+      <div class="card overflow-hidden relative">
+        <div class="absolute inset-0 grid-bg opacity-50"></div>
+        <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-brand-50 to-transparent"></div>
+        <div class="relative p-6 flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="chip cat-bim">Phase 1</span>
+              <span class="chip cat-act">Master Database</span>
+              <span class="chip badge-approved">System Healthy</span>
+            </div>
+            <h2 class="font-display text-2xl font-bold text-ink-900">Construction Master Database & BIM Object Library</h2>
+            <p class="text-sm text-ink-600 mt-1 max-w-2xl">Centralised technical database with reusable construction elements, BIM properties, materials, manpower, equipment, activities, safety, quality and testing relationships — ready to feed BOQ preparation and field execution systems.</p>
+          </div>
+          <div class="flex gap-6 items-center">
+            <div class="text-center">
+              <div class="text-3xl font-bold gradient-text">${totalRecords}</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Master Records</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-amber-600">${totalLinks}</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Relationship Links</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-emerald-600">16</div>
+              <div class="text-xs text-ink-500 uppercase tracking-wider">Categories</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+        ${stats.map(s => `
+          <div class="card p-4 hover:shadow-md transition-shadow cursor-pointer stat-card" style="--c:${s.color}" onclick="navigateTo('${s.view}')">
+            <div class="flex items-start justify-between">
+              <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:${s.color}15;color:${s.color}">
+                <i data-lucide="${s.icon}" class="w-4 h-4"></i>
+              </div>
+              ${catChip(s.cat, s.cat.toUpperCase())}
+            </div>
+            <div class="mt-3">
+              <div class="font-display text-2xl font-bold text-ink-900">${s.val}</div>
+              <div class="text-xs text-ink-500 mt-0.5">${s.label}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Categories donut (using conic gradient) -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-ink-800">Category Distribution</h3>
+            <i data-lucide="pie-chart" class="w-4 h-4 text-ink-400"></i>
+          </div>
+          ${renderCategoryDonut()}
+        </div>
+
+        <!-- Approval queue -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-ink-800">Approval Queue</h3>
+            <button onclick="navigateTo('approval')" class="text-xs text-brand-600 hover:underline">View all →</button>
+          </div>
+          <div class="space-y-2">
+            ${APPROVALS.slice(0,5).map(a => `
+              <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-ink-50">
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-ink-800 truncate">${a.item}</div>
+                  <div class="text-[11px] text-ink-500">${a.type} · Rev ${a.revision} · ${a.submittedBy}</div>
+                </div>
+                ${statusBadge(a.status)}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Recent audit -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold text-ink-800">Recent Activity</h3>
+            <button onclick="navigateTo('audit')" class="text-xs text-brand-600 hover:underline">View all →</button>
+          </div>
+          <div class="space-y-2">
+            ${recent.map(a => `
+              <div class="flex items-start gap-3 text-sm">
+                <div class="w-2 h-2 mt-1.5 rounded-full bg-brand-500 flex-shrink-0"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-ink-800"><span class="font-medium">${a.user}</span> <span class="text-ink-500">${a.action.toLowerCase()}</span></div>
+                  <div class="text-xs text-ink-500 truncate">${a.target}</div>
+                  <div class="text-[10px] text-ink-400 font-mono mt-0.5">${a.ts}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- BIM Elements preview -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="font-semibold text-ink-800">Featured BIM Elements with Relationships</h3>
+            <p class="text-xs text-ink-500">Click any element to open its full relationship graph</p>
+          </div>
+          <button onclick="navigateTo('bim')" class="text-xs text-brand-600 hover:underline">Open library →</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          ${BIM_ELEMENTS.slice(0,6).map(b => renderBimCard(b)).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCategoryDonut() {
+  const data = [
+    { label:'BIM', val:BIM_ELEMENTS.length, color:'#4f46e5' },
+    { label:'Materials', val:MATERIALS.length, color:'#ea580c' },
+    { label:'Manpower', val:MANPOWER.length, color:'#16a34a' },
+    { label:'Equipment', val:EQUIPMENT.length, color:'#dc2626' },
+    { label:'Tools', val:TOOLS.length, color:'#ca8a04' },
+    { label:'Consumables', val:CONSUMABLES.length, color:'#9333ea' },
+    { label:'Temp Works', val:TEMPWORKS.length, color:'#db2777' },
+    { label:'Activities', val:ACTIVITIES.length, color:'#2563eb' },
+    { label:'Safety', val:SAFETY_HAZARDS.length, color:'#b91c1c' },
+    { label:'Quality', val:QC_CHECKLISTS.length+ITP_TEMPLATES.length, color:'#0891b2' },
+    { label:'Testing', val:TESTS.length, color:'#0d9488' },
+    { label:'Standards', val:STANDARDS.length, color:'#475569' },
+  ];
+  const total = data.reduce((a,b)=>a+b.val,0);
+  let acc=0; const segs=[];
+  data.forEach(d=>{ const pct=d.val/total*100; segs.push({ ...d, start:acc, end:acc+pct }); acc+=pct; });
+  const conic = segs.map(s => `${s.color} ${s.start}% ${s.end}%`).join(', ');
+  return `
+    <div class="flex items-center gap-5">
+      <div class="relative">
+        <div class="w-36 h-36 rounded-full" style="background: conic-gradient(${conic})"></div>
+        <div class="absolute inset-3 bg-white rounded-full flex flex-col items-center justify-center">
+          <div class="font-display text-2xl font-bold text-ink-900">${total}</div>
+          <div class="text-[10px] text-ink-500 uppercase">Records</div>
+        </div>
+      </div>
+      <div class="flex-1 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+        ${data.map(d=>`
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-sm" style="background:${d.color}"></span>
+            <span class="text-ink-600 flex-1">${d.label}</span>
+            <span class="font-mono font-semibold text-ink-800">${d.val}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderBimCard(b) {
+  const matCount = b.materials?.length || 0;
+  const actCount = b.activities?.length || 0;
+  const safeCount = b.safety?.length || 0;
+  const testCount = b.tests?.length || 0;
+  const qcCount = b.quality?.length || 0;
+  const totalRel = matCount+actCount+safeCount+testCount+qcCount+(b.manpower?.length||0)+(b.equipment?.length||0);
+  return `
+    <div class="border border-ink-200 rounded-xl p-4 hover:border-brand-300 hover:shadow-sm transition-all cursor-pointer" onclick="openBimDetail('${b.id}')">
+      <div class="flex items-start justify-between gap-2 mb-2">
+        <div>
+          <div class="font-mono text-[10px] text-ink-500">${b.code}</div>
+          <div class="font-semibold text-ink-800 text-sm leading-snug">${b.name}</div>
+        </div>
+        ${statusBadge(b.status)}
+      </div>
+      <div class="flex flex-wrap gap-1 mb-3">
+        <span class="chip cat-bim">${b.discipline}</span>
+        <span class="chip cat-std">${b.ifc}</span>
+        <span class="chip cat-unit">Rev ${b.revision}</span>
+      </div>
+      <div class="flex items-center gap-3 text-xs text-ink-600">
+        <span class="flex items-center gap-1" title="Materials"><i data-lucide="package" class="w-3 h-3"></i>${matCount}</span>
+        <span class="flex items-center gap-1" title="Activities"><i data-lucide="list-checks" class="w-3 h-3"></i>${actCount}</span>
+        <span class="flex items-center gap-1" title="Safety"><i data-lucide="shield-alert" class="w-3 h-3"></i>${safeCount}</span>
+        <span class="flex items-center gap-1" title="Quality"><i data-lucide="badge-check" class="w-3 h-3"></i>${qcCount}</span>
+        <span class="flex items-center gap-1" title="Tests"><i data-lucide="flask-conical" class="w-3 h-3"></i>${testCount}</span>
+        <span class="ml-auto text-[10px] font-mono text-ink-400">${totalRel} links</span>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: RELATIONSHIP EXPLORER ----------------------- */
+function viewRelationships() {
+  const b = lookups.bim[state.selectedBim];
+  return `
+    <div class="space-y-4">
+      <!-- BIM Element selector -->
+      <div class="card p-4 flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2 text-sm text-ink-600">
+          <i data-lucide="box" class="w-4 h-4"></i>
+          <span class="font-medium">Central Element:</span>
+        </div>
+        <select id="bimSelect" class="border border-ink-200 rounded-lg px-3 py-1.5 text-sm bg-white min-w-[280px]">
+          ${BIM_ELEMENTS.map(x => `<option value="${x.id}" ${x.id===b.id?'selected':''}>${x.code} — ${x.name}</option>`).join('')}
+        </select>
+        <div class="flex flex-wrap gap-1.5">
+          <span class="chip cat-bim">${b.discipline}</span>
+          <span class="chip cat-std">${b.ifc}</span>
+          <span class="chip cat-unit">${b.unit}</span>
+          ${statusBadge(b.status)}
+          <span class="chip cat-unit">Rev ${b.revision}</span>
+        </div>
+        <div class="ml-auto text-xs text-ink-500 font-mono">
+          Formula: <span class="text-brand-600">${b.formula}</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <!-- Radial graph -->
+        <div class="xl:col-span-2 card p-4">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-semibold text-ink-800">Relationship Graph</h3>
+            <span class="text-xs text-ink-500">Hover nodes for details · Click to focus</span>
+          </div>
+          <div id="graphHost" class="w-full" style="height:520px"></div>
+        </div>
+
+        <!-- Side panel: details -->
+        <div class="card p-4 overflow-y-auto" style="max-height:560px">
+          <h3 class="font-semibold text-ink-800 mb-3">Linked Master Data</h3>
+          <div id="relDetails" class="space-y-3 text-sm">
+            ${renderRelationSummary(b)}
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabular breakdown -->
+      <div class="card p-5">
+        <h3 class="font-semibold text-ink-800 mb-3">Full Relationship Breakdown — ${b.name}</h3>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          ${renderRelationTable('Materials', 'package', b.materials, 'm', 'material', true)}
+          ${renderRelationTable('Activities', 'list-checks', b.activities, 'a', 'activity', false)}
+          ${renderRelationTable('Manpower', 'users', b.manpower, 'p', 'manpower', true)}
+          ${renderRelationTable('Equipment', 'truck', b.equipment, 'e', 'equipment', true)}
+          ${renderRelationTable('Temporary Works', 'construction', b.tempWorks, 'tw', 'tempwork', true)}
+          ${renderRelationTable('Consumables', 'droplets', b.consumables, 'c', 'consumable', true)}
+          ${renderRelationTable('Safety Hazards', 'shield-alert', b.safety, 'h', 'hazard', false)}
+          ${renderRelationTable('QC / ITP', 'badge-check', b.quality, 'q', 'qc', false, true)}
+          ${renderRelationTable('Testing', 'flask-conical', b.tests, 'ts', 'test', false)}
+          ${renderRelationTable('Standards', 'book-open', b.standards, 's', 'standard', false)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderRelationSummary(b) {
+  const rows = [
+    { icon:'package', label:'Materials', items:b.materials, lookup:'material', qField:'qty' },
+    { icon:'list-checks', label:'Activities', items:b.activities?.map(id=>({id})), lookup:'activity' },
+    { icon:'users', label:'Manpower', items:b.manpower, lookup:'manpower', qField:'qty' },
+    { icon:'truck', label:'Equipment', items:b.equipment, lookup:'equipment', qField:'qty' },
+    { icon:'construction', label:'Temp Works', items:b.tempWorks, lookup:'tempwork', qField:'qty' },
+    { icon:'droplets', label:'Consumables', items:b.consumables, lookup:'consumable', qField:'qty' },
+    { icon:'shield-alert', label:'Safety', items:b.safety?.map(id=>({id})), lookup:'hazard' },
+    { icon:'badge-check', label:'QC / ITP', items:b.quality?.map(id=>({id})), lookup:'qc' },
+    { icon:'flask-conical', label:'Testing', items:b.tests?.map(id=>({id})), lookup:'test' },
+    { icon:'book-open', label:'Standards', items:b.standards?.map(id=>({id})), lookup:'standard' },
+  ];
+  return rows.map(r => {
+    if (!r.items || r.items.length === 0) return '';
+    const first = r.items[0];
+    const ref = lookups[r.lookup]?.[first.id];
+    if (!ref) return '';
+    return `
+      <div class="border-l-2 border-brand-200 pl-3 py-1">
+        <div class="flex items-center justify-between mb-1">
+          <div class="flex items-center gap-2 text-xs font-semibold text-ink-700 uppercase tracking-wide">
+            <i data-lucide="${r.icon}" class="w-3.5 h-3.5 text-brand-500"></i>
+            ${r.label}
+          </div>
+          <span class="text-[10px] font-mono text-ink-500">${r.items.length} item${r.items.length>1?'s':''}</span>
+        </div>
+        <div class="text-xs text-ink-600">
+          ${r.items.slice(0,3).map(it => {
+            const x = lookups[r.lookup]?.[it.id];
+            if (!x) return '';
+            const qty = r.qField && it[r.qField] ? ` <span class="text-ink-400">·</span> <span class="font-mono">${it[r.qField]} ${it.unit||''}</span>` : '';
+            return `<div class="py-0.5">${x.name||x.title}${qty}</div>`;
+          }).join('')}
+          ${r.items.length>3 ? `<div class="text-[10px] text-ink-400 mt-0.5">+${r.items.length-3} more…</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderRelationTable(label, icon, items, prefix, lookupKey, showQty, isITP=false) {
+  if (!items || items.length === 0) return '';
+  const rows = items.map(it => {
+    if (typeof it === 'string') it = { id: it };
+    const x = lookups[lookupKey]?.[it.id];
+    if (!x) return '';
+    const code = x.code || '';
+    const name = x.name || x.title || '';
+    const qty = showQty && it.qty ? `<span class="font-mono text-ink-700">${it.qty}</span> <span class="text-ink-400 text-[11px]">${it.unit||''}</span>` : '';
+    const meta = isITP && x.stages ? `<div class="text-[11px] text-ink-500 mt-0.5">${x.stages.join(' → ')}</div>` : (x.spec ? `<div class="text-[11px] text-ink-500 mt-0.5">${x.spec}</div>` : '');
+    return `
+      <div class="flex items-start gap-3 py-1.5 border-b border-ink-100 last:border-0">
+        <span class="font-mono text-[10px] text-ink-500 mt-0.5 w-20 flex-shrink-0">${code}</span>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm text-ink-800">${name}</div>
+          ${meta}
+        </div>
+        <div class="text-right">${qty}</div>
+      </div>
+    `;
+  }).join('');
+  return `
+    <div>
+      <div class="flex items-center gap-2 mb-2">
+        <i data-lucide="${icon}" class="w-4 h-4 text-ink-500"></i>
+        <h4 class="font-semibold text-sm text-ink-800">${label}</h4>
+        <span class="text-[10px] font-mono text-ink-400">${items.length}</span>
+      </div>
+      <div>${rows}</div>
+    </div>
+  `;
+}
+
+function renderRelationshipGraph() {
+  const host = el('graphHost');
+  if (!host) return;
+  const b = lookups.bim[state.selectedBim];
+  const cx = host.clientWidth / 2;
+  const cy = host.clientHeight / 2;
+
+  // Build categories array
+  const groups = [
+    { key:'materials',   label:'Materials',      color:'#ea580c', icon:'package',        items:(b.materials||[]).map(x=>({id:x.id, ref:lookups.material[x.id], qty:x.qty, unit:x.unit})) },
+    { key:'activities', label:'Activities',     color:'#2563eb', icon:'list-checks',     items:(b.activities||[]).map(id=>({id, ref:lookups.activity[id]})) },
+    { key:'manpower',    label:'Manpower',        color:'#16a34a', icon:'users',           items:(b.manpower||[]).map(x=>({id:x.id, ref:lookups.manpower[x.id], qty:x.qty, unit:x.unit})) },
+    { key:'equipment',   label:'Equipment',       color:'#dc2626', icon:'truck',           items:(b.equipment||[]).map(x=>({id:x.id, ref:lookups.equipment[x.id], qty:x.qty, unit:x.unit})) },
+    { key:'tempWorks',   label:'Temp Works',      color:'#db2777', icon:'construction',    items:(b.tempWorks||[]).map(x=>({id:x.id, ref:lookups.tempwork[x.id], qty:x.qty, unit:x.unit})) },
+    { key:'consumables', label:'Consumables',     color:'#9333ea', icon:'droplets',        items:(b.consumables||[]).map(x=>({id:x.id, ref:lookups.consumable[x.id], qty:x.qty, unit:x.unit})) },
+    { key:'safety',      label:'Safety',          color:'#b91c1c', icon:'shield-alert',    items:(b.safety||[]).map(id=>({id, ref:lookups.hazard[id]})) },
+    { key:'quality',     label:'QC / ITP',        color:'#0891b2', icon:'badge-check',     items:(b.quality||[]).map(id=>({id, ref:lookups.qc[id] || lookups.itp[id]})) },
+    { key:'tests',       label:'Testing',         color:'#0d9488', icon:'flask-conical',   items:(b.tests||[]).map(id=>({id, ref:lookups.test[id]})) },
+    { key:'standards',   label:'Standards',       color:'#475569', icon:'book-open',       items:(b.standards||[]).map(id=>({id, ref:lookups.standard[id]})) },
+  ].filter(g => g.items.length > 0);
+
+  const activeGroups = groups.length;
+  const radius = Math.min(cx, cy) - 60;
+
+  // Compute group ring positions
+  groups.forEach((g, i) => {
+    const angle = (i / activeGroups) * 2 * Math.PI - Math.PI/2;
+    g.angle = angle;
+    g.cx = cx + Math.cos(angle) * radius;
+    g.cy = cy + Math.sin(angle) * radius;
+    // Item positions around group center
+    g.items.forEach((it, j) => {
+      const a2 = (j / Math.max(g.items.length, 1)) * 2 * Math.PI;
+      const r = Math.min(50, 12 + g.items.length * 5);
+      it.x = g.cx + Math.cos(a2) * r;
+      it.y = g.cy + Math.sin(a2) * r;
+    });
+  });
+
+  // Build SVG
+  let edges = '';
+  let itemNodes = '';
+  let groupNodes = '';
+
+  groups.forEach(g => {
+    // edge from center to group
+    edges += `<line class="relation-edge" x1="${cx}" y1="${cy}" x2="${g.cx}" y2="${g.cy}" stroke="${g.color}" stroke-opacity="0.25" stroke-width="2"/>`;
+    // group node
+    groupNodes += `
+      <g class="relation-node" onclick="focusGroup('${g.key}')">
+        <circle cx="${g.cx}" cy="${g.cy}" r="22" fill="${g.color}" fill-opacity="0.15" stroke="${g.color}" stroke-width="2"/>
+        <circle cx="${g.cx}" cy="${g.cy}" r="14" fill="${g.color}"/>
+        <text x="${g.cx}" y="${g.cy+4}" text-anchor="middle" fill="white" font-size="10" font-weight="700">${g.items.length}</text>
+        <text x="${g.cx}" y="${g.cy+38}" text-anchor="middle" fill="#1e293b" font-size="11" font-weight="600">${g.label}</text>
+      </g>`;
+    // items
+    g.items.forEach(it => {
+      if (!it.ref) return;
+      const name = (it.ref.name||it.ref.title||'').slice(0, 22);
+      edges += `<line class="relation-edge" x1="${g.cx}" y1="${g.cy}" x2="${it.x}" y2="${it.y}" stroke="${g.color}" stroke-opacity="0.4"/>`;
+      itemNodes += `
+        <g class="relation-node">
+          <circle cx="${it.x}" cy="${it.y}" r="6" fill="${g.color}" fill-opacity="0.85" stroke="white" stroke-width="1.5"/>
+          <title>${name}${it.qty ? ' · ' + it.qty + ' ' + (it.unit||'') : ''}</title>
+        </g>`;
+    });
+  });
+
+  // center node
+  const centerNode = `
+    <g>
+      <circle cx="${cx}" cy="${cy}" r="42" fill="#1f3aae" fill-opacity="0.08" stroke="#1f3aae" stroke-width="2"/>
+      <circle cx="${cx}" cy="${cy}" r="32" fill="#1f3aae"/>
+      <text x="${cx}" y="${cy-3}" text-anchor="middle" fill="white" font-size="10" font-weight="600">${b.code}</text>
+      <text x="${cx}" y="${cy+10}" text-anchor="middle" fill="white" font-size="9" font-weight="500">${b.ifc}</text>
+      <text x="${cx}" y="${cy+58}" text-anchor="middle" fill="#0f172a" font-size="12" font-weight="700">${b.name}</text>
+    </g>
+  `;
+
+  host.innerHTML = `
+    <svg width="100%" height="100%" viewBox="0 0 ${host.clientWidth} ${host.clientHeight}">
+      <defs>
+        <radialGradient id="bgGrad">
+          <stop offset="0%" stop-color="#f8fafc"/>
+          <stop offset="100%" stop-color="#ffffff"/>
+        </radialGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#bgGrad)"/>
+      ${edges}
+      ${itemNodes}
+      ${groupNodes}
+      ${centerNode}
+    </svg>
+  `;
+}
+
+window.focusGroup = function(key) { toast(`Focused ${key}`); };
+
+/* ----------------------- VIEW: BIM LIBRARY ----------------------- */
+function viewBim() {
+  const disciplines = [...new Set(BIM_ELEMENTS.map(b=>b.discipline))].sort();
+  return `
+    <div class="space-y-4">
+      <div class="flex flex-wrap gap-2 items-center" id="bimFilters">
+        <button class="tab-btn active" data-filter="all">All (${BIM_ELEMENTS.length})</button>
+        ${disciplines.map(d => {
+          const cnt = BIM_ELEMENTS.filter(b=>b.discipline===d).length;
+          return `<button class="tab-btn" data-filter="${d}">${d} (${cnt})</button>`;
+        }).join('')}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="bimGrid">
+        ${BIM_ELEMENTS.map(b => renderBimCard(b)).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: GENERIC LIST ----------------------- */
+function viewMaterials() { return renderResourceTable('Materials', MATERIALS, ['code','name','spec','unit','category','standards']); }
+function viewManpower()  { return renderResourceTable('Manpower & Labour', MANPOWER, ['code','name','skill','trade','standards']); }
+function viewEquipment() { return renderResourceTable('Equipment & Machinery', EQUIPMENT, ['code','name','spec','category']); }
+function viewTools()     {
+  return `
+    <div class="space-y-6">
+      ${renderResourceTable('Tools & Accessories', TOOLS, ['code','name','category'])}
+      ${renderResourceTable('Consumables', CONSUMABLES, ['code','name','category'])}
+    </div>
+  `;
+}
+function viewTempWorks() { return renderResourceTable('Temporary Works', TEMPWORKS, ['code','name','category']); }
+
+function viewActivities() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr><th>Code</th><th>Activity</th><th>Linked BIM Elements</th><th>Prerequisites</th><th>Method Statement</th><th></th></tr>
+          </thead>
+          <tbody>
+            ${ACTIVITIES.map(a => `
+              <tr class="cursor-pointer hover:bg-ink-50" onclick="openActivityDetail('${a.id}')">
+                <td class="font-mono text-xs text-ink-600">${a.code}</td>
+                <td class="font-medium text-ink-800">${a.name}</td>
+                <td>
+                  <div class="flex flex-wrap gap-1">
+                    ${(a.elements||[]).map(eid => {
+                      const b = lookups.bim[eid]; if(!b) return '';
+                      return `<span class="chip cat-bim">${b.name}</span>`;
+                    }).join('')}
+                  </div>
+                </td>
+                <td>
+                  <div class="flex flex-wrap gap-1">
+                    ${(a.prerequisites||[]).map(pid => {
+                      const p = lookups.activity[pid]; if(!p) return '';
+                      return `<span class="chip cat-unit">${p.code}</span>`;
+                    }).join('') || '<span class="text-ink-400 text-xs">—</span>'}
+                  </div>
+                </td>
+                <td class="text-xs text-ink-600">${a.method||'—'}</td>
+                <td><i data-lucide="chevron-right" class="w-4 h-4 text-ink-400"></i></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderResourceTable(title, items, fields) {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200">
+        <h3 class="font-semibold text-ink-800">${title}</h3>
+        <p class="text-xs text-ink-500">${items.length} records</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Name</th>
+              ${fields.includes('spec') ? '<th>Specification</th>' : ''}
+              ${fields.includes('skill') ? '<th>Skill</th>' : ''}
+              ${fields.includes('trade') ? '<th>Trade</th>' : ''}
+              ${fields.includes('unit') ? '<th>Unit</th>' : ''}
+              ${fields.includes('category') ? '<th>Category</th>' : ''}
+              ${fields.includes('standards') ? '<th>Standards</th>' : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(it => `
+              <tr>
+                <td class="font-mono text-xs text-ink-600">${it.code}</td>
+                <td class="font-medium text-ink-800">${it.name}</td>
+                ${fields.includes('spec') ? `<td class="text-xs text-ink-600">${it.spec||'—'}</td>` : ''}
+                ${fields.includes('skill') ? `<td><span class="chip cat-man">${it.skill||'—'}</span></td>` : ''}
+                ${fields.includes('trade') ? `<td class="text-xs text-ink-600">${it.trade||'—'}</td>` : ''}
+                ${fields.includes('unit') ? `<td><span class="chip cat-unit">${it.unit||'—'}</span></td>` : ''}
+                ${fields.includes('category') ? `<td><span class="chip cat-std">${it.category||'—'}</span></td>` : ''}
+                ${fields.includes('standards') ? `<td><div class="flex flex-wrap gap-1">${(it.standards||[]).map(sid => { const s = lookups.standard[sid]; return s ? `<span class="chip cat-std">${s.code}</span>` : ''; }).join('') || '<span class="text-ink-400 text-xs">—</span>'}</div></td>` : ''}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: SAFETY ----------------------- */
+function viewSafety() {
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 card overflow-hidden">
+        <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+          <h3 class="font-semibold text-ink-800">Safety Hazards</h3>
+          <span class="text-xs text-ink-500">${SAFETY_HAZARDS.length} records</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Code</th><th>Hazard</th><th>Severity</th><th>Linked Activities</th></tr></thead>
+            <tbody>
+              ${SAFETY_HAZARDS.map(h => `
+                <tr>
+                  <td class="font-mono text-xs text-ink-600">${h.code}</td>
+                  <td class="font-medium text-ink-800">${h.name}</td>
+                  <td>${severityBadge(h.severity)}</td>
+                  <td>
+                    <div class="flex flex-wrap gap-1">
+                      ${(h.activity||[]).map(aid => { const a = lookups.activity[aid]; return a ? `<span class="chip cat-act">${a.code}</span>` : ''; }).join('')}
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="space-y-6">
+        <div class="card p-4">
+          <h3 class="font-semibold text-ink-800 mb-3">Risk Controls</h3>
+          <div class="space-y-2">
+            ${RISK_CONTROLS.map(c => `
+              <div class="flex items-center justify-between p-2 rounded hover:bg-ink-50">
+                <div>
+                  <div class="text-sm text-ink-800 font-medium">${c.name}</div>
+                  <div class="text-[11px] text-ink-500 font-mono">${c.code}</div>
+                </div>
+                <span class="chip cat-std">${c.type}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="card p-4">
+          <h3 class="font-semibold text-ink-800 mb-3">PPE Library</h3>
+          <div class="space-y-2">
+            ${PPE.map(p => `
+              <div class="flex items-center justify-between p-2 rounded hover:bg-ink-50">
+                <div>
+                  <div class="text-sm text-ink-800 font-medium">${p.name}</div>
+                  <div class="text-[11px] text-ink-500 font-mono">${p.code}</div>
+                </div>
+                <span class="chip cat-safe">${p.type}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function severityBadge(s) {
+  const map = { Low:'badge-draft', Medium:'badge-pending', High:'badge-rejected', Critical:'badge-rejected' };
+  return `<span class="chip ${map[s]||'badge-draft'}">${s}</span>`;
+}
+
+/* ----------------------- VIEW: QUALITY ----------------------- */
+function viewQuality() {
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card overflow-hidden">
+        <div class="px-4 py-3 border-b border-ink-200"><h3 class="font-semibold text-ink-800">Inspection Checklists</h3><p class="text-xs text-ink-500">${QC_CHECKLISTS.length} records</p></div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Code</th><th>Checklist</th><th>Category</th><th>Linked BIM Elements</th><th>Standards</th></tr></thead>
+            <tbody>
+              ${QC_CHECKLISTS.map(q => `
+                <tr>
+                  <td class="font-mono text-xs text-ink-600">${q.code}</td>
+                  <td class="font-medium text-ink-800">${q.name}</td>
+                  <td><span class="chip cat-qc">${q.category}</span></td>
+                  <td><div class="flex flex-wrap gap-1">${(q.elements||[]).map(bid => { const b = lookups.bim[bid]; return b ? `<span class="chip cat-bim">${b.code}</span>` : ''; }).join('') || '<span class="text-ink-400 text-xs">—</span>'}</div></td>
+                  <td><div class="flex flex-wrap gap-1">${(q.standards||[]).map(sid => { const s = lookups.standard[sid]; return s ? `<span class="chip cat-std">${s.code}</span>` : ''; }).join('')}</div></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card overflow-hidden">
+        <div class="px-4 py-3 border-b border-ink-200"><h3 class="font-semibold text-ink-800">ITP Templates</h3><p class="text-xs text-ink-500">${ITP_TEMPLATES.length} records</p></div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Code</th><th>Template</th><th>Linked BIM Elements</th><th>Inspection Stages</th></tr></thead>
+            <tbody>
+              ${ITP_TEMPLATES.map(i => `
+                <tr>
+                  <td class="font-mono text-xs text-ink-600">${i.code}</td>
+                  <td class="font-medium text-ink-800">${i.name}</td>
+                  <td><div class="flex flex-wrap gap-1">${(i.elements||[]).map(bid => { const b = lookups.bim[bid]; return b ? `<span class="chip cat-bim">${b.code}</span>` : ''; }).join('')}</div></td>
+                  <td class="text-xs text-ink-600">${(i.stages||[]).join(' → ')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: TESTING ----------------------- */
+function viewTesting() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200"><h3 class="font-semibold text-ink-800">Testing & Laboratory</h3><p class="text-xs text-ink-500">${TESTS.length} test definitions</p></div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead><tr><th>Code</th><th>Test Name</th><th>Standards</th><th>Specimen</th><th>Frequency</th><th>Equipment</th></tr></thead>
+          <tbody>
+            ${TESTS.map(t => `
+              <tr>
+                <td class="font-mono text-xs text-ink-600">${t.code}</td>
+                <td class="font-medium text-ink-800">${t.name}</td>
+                <td><div class="flex flex-wrap gap-1">${(t.standards||[]).map(sid => { const s = lookups.standard[sid]; return s ? `<span class="chip cat-std">${s.code}</span>` : ''; }).join('')}</div></td>
+                <td class="text-xs text-ink-600">${t.specimen||'—'}</td>
+                <td><span class="chip cat-qc">${t.frequency||'—'}</span></td>
+                <td><div class="flex flex-wrap gap-1">${(t.equipment||[]).map(eid => { const e = lookups.equipment[eid]; return e ? `<span class="chip cat-act">${e.code}</span>` : ''; }).join('') || '<span class="text-ink-400 text-xs">—</span>'}</div></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: STANDARDS & UNITS ----------------------- */
+function viewStandards() {
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card overflow-hidden">
+        <div class="px-4 py-3 border-b border-ink-200"><h3 class="font-semibold text-ink-800">Technical Standards</h3><p class="text-xs text-ink-500">${STANDARDS.length} standards</p></div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Code</th><th>Title</th><th>Authority</th><th>Status</th></tr></thead>
+            <tbody>
+              ${STANDARDS.map(s => `
+                <tr>
+                  <td class="font-mono text-xs text-ink-600">${s.code}</td>
+                  <td class="text-sm text-ink-800">${s.title}</td>
+                  <td><span class="chip cat-std">${s.authority}</span></td>
+                  <td>${statusBadge(s.status)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card overflow-hidden">
+        <div class="px-4 py-3 border-b border-ink-200"><h3 class="font-semibold text-ink-800">Units of Measurement</h3><p class="text-xs text-ink-500">${UNITS.length} units</p></div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Code</th><th>Name</th><th>Symbol</th><th>Dimension</th></tr></thead>
+            <tbody>
+              ${UNITS.map(u => `
+                <tr>
+                  <td class="font-mono text-xs text-ink-600">${u.code}</td>
+                  <td class="text-sm text-ink-800">${u.name}</td>
+                  <td><span class="chip cat-unit">${u.symbol}</span></td>
+                  <td class="text-xs text-ink-600">${u.dimension}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: APPROVAL CENTRE ----------------------- */
+function viewApproval() {
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div class="card p-4"><div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Pending Review</div><div class="font-display text-2xl font-bold text-amber-600">${APPROVALS.filter(a=>a.status==='Pending Review').length}</div></div>
+      <div class="card p-4"><div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Draft</div><div class="font-display text-2xl font-bold text-ink-500">${APPROVALS.filter(a=>a.status==='Draft').length}</div></div>
+      <div class="card p-4"><div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Total Queue</div><div class="font-display text-2xl font-bold text-brand-600">${APPROVALS.length}</div></div>
+    </div>
+    <div class="card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead><tr><th>Approval ID</th><th>Item</th><th>Type</th><th>Revision</th><th>Submitted By</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${APPROVALS.map(a => `
+              <tr>
+                <td class="font-mono text-xs text-ink-600">${a.code}</td>
+                <td class="font-medium text-ink-800">${a.item}</td>
+                <td><span class="chip cat-std">${a.type}</span></td>
+                <td class="text-xs text-ink-600">${a.revision}</td>
+                <td class="text-xs text-ink-600">${a.submittedBy}</td>
+                <td class="text-xs text-ink-500 font-mono">${a.submittedOn}</td>
+                <td>${statusBadge(a.status)}</td>
+                <td>
+                  <div class="flex gap-1">
+                    <button onclick="approveItem('${a.id}')" class="px-2 py-1 text-[11px] bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100">Approve</button>
+                    <button onclick="rejectItem('${a.id}')" class="px-2 py-1 text-[11px] bg-red-50 text-red-700 rounded hover:bg-red-100">Reject</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+window.approveItem = function(id) { toast(`Approved ${APPROVALS.find(a=>a.id===id).code}`); };
+window.rejectItem  = function(id) { toast(`Rejected ${APPROVALS.find(a=>a.id===id).code}`); };
+
+/* ----------------------- VIEW: AI CENTRE ----------------------- */
+function viewAI() {
+  return `
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div class="card p-4"><div class="text-xs text-ink-500 uppercase tracking-wider mb-1">AI Provider</div><div class="font-display text-lg font-bold text-ink-900">OpenAI · GPT-4o</div><div class="text-[10px] text-ink-500">Configurable · Not hardcoded</div></div>
+      <div class="card p-4"><div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Pending Review</div><div class="font-display text-2xl font-bold text-amber-600">${AI_PROPOSALS.filter(a=>a.status==='Pending').length}</div></div>
+      <div class="card p-4"><div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Confidence Avg</div><div class="font-display text-2xl font-bold text-emerald-600">${(AI_PROPOSALS.reduce((s,a)=>s+a.confidence,0)/AI_PROPOSALS.length*100).toFixed(0)}%</div></div>
+    </div>
+
+    <div class="card overflow-hidden mb-6">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-ink-800">AI-Generated Master Data Proposals</h3>
+          <p class="text-xs text-ink-500">All AI-proposed records remain drafts until approved by authorized reviewer</p>
+        </div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700 flex items-center gap-1.5" onclick="toast('Batch generation started')"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Generate New Batch</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead><tr><th>Proposal ID</th><th>Category</th><th>Suggestion</th><th>Confidence</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            ${AI_PROPOSALS.map(a => `
+              <tr>
+                <td class="font-mono text-xs text-ink-600">${a.code}</td>
+                <td><span class="chip cat-std">${a.category}</span></td>
+                <td class="text-sm text-ink-800">${a.title}</td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="w-16 h-1.5 bg-ink-100 rounded-full overflow-hidden">
+                      <div class="h-full ${a.confidence>0.85?'bg-emerald-500':a.confidence>0.7?'bg-amber-500':'bg-red-500'}" style="width:${a.confidence*100}%"></div>
+                    </div>
+                    <span class="text-xs font-mono text-ink-600">${(a.confidence*100).toFixed(0)}%</span>
+                  </div>
+                </td>
+                <td>${statusBadge(a.status)}</td>
+                <td><button class="px-2 py-1 text-[11px] bg-brand-50 text-brand-700 rounded hover:bg-brand-100" onclick="toast('Reviewing ${a.code}')">Review</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card p-5">
+      <h3 class="font-semibold text-ink-800 mb-3">AI Generation Capabilities</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+        ${[
+          ['Initial catalogue generation','Generate structured JSON proposals category by category'],
+          ['New item suggestions','Suggest missing items based on existing patterns'],
+          ['Missing resource suggestions','Identify gaps in material, manpower or equipment links'],
+          ['Related activity suggestions','Recommend activity linkages for BIM elements'],
+          ['Safety & QC relationship suggestions','Propose hazard/QC pairings'],
+          ['Duplicate detection','Identify potentially duplicate master records'],
+          ['Schema validation','Ensure AI output matches approved JSON schema'],
+          ['Technical source verification','Cross-check against approved standards'],
+          ['Department review & approval workflow','Route AI drafts through governance'],
+        ].map(([t,d]) => `
+          <div class="border border-ink-200 rounded-lg p-3 hover:border-brand-300">
+            <div class="flex items-start gap-2">
+              <div class="w-7 h-7 rounded bg-brand-50 flex items-center justify-center flex-shrink-0"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-brand-600"></i></div>
+              <div>
+                <div class="font-medium text-ink-800 text-sm">${t}</div>
+                <div class="text-xs text-ink-500 mt-0.5">${d}</div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- VIEW: AUDIT CENTRE ----------------------- */
+function viewAudit() {
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-semibold text-ink-800">Immutable Audit Trail</h3>
+          <p class="text-xs text-ink-500">Complete history of changes to master records · ${AUDIT_LOG.length} entries</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <select class="text-xs border border-ink-200 rounded-lg px-2 py-1.5 bg-white">
+            <option>All actions</option>
+            <option>Created</option>
+            <option>Edited</option>
+            <option>Approved</option>
+            <option>Rejected</option>
+            <option>Submitted</option>
+            <option>Proposed</option>
+          </select>
+          <button class="px-3 py-1.5 text-xs font-medium border border-ink-200 rounded-lg text-ink-700 hover:bg-ink-50 flex items-center gap-1.5"><i data-lucide="download" class="w-3.5 h-3.5"></i> Export</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Target Record</th><th>Category</th></tr></thead>
+          <tbody>
+            ${AUDIT_LOG.map(a => `
+              <tr>
+                <td class="text-xs font-mono text-ink-600">${a.ts}</td>
+                <td class="text-sm text-ink-800">${a.user}</td>
+                <td>${actionBadge(a.action)}</td>
+                <td class="text-sm font-mono text-ink-700">${a.target}</td>
+                <td><span class="chip cat-std">${a.category}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function actionBadge(action) {
+  const map = { Created:'badge-approved', Approved:'badge-approved', Edited:'badge-pending', Rejected:'badge-rejected', Submitted:'badge-pending', Proposed:'badge-draft' };
+  return `<span class="chip ${map[action]||'badge-draft'}">${action}</span>`;
+}
+
+/* ----------------------- MODAL: BIM DETAIL ----------------------- */
+window.openBimDetail = function(id) {
+  const b = lookups.bim[id];
+  if (!b) return;
+  const content = el('modalContent');
+  content.innerHTML = `
+    <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+      <div>
+        <div class="font-mono text-xs text-ink-500">${b.code} · ${b.ifc} · Rev ${b.revision}</div>
+        <h2 class="font-display text-xl font-bold text-ink-900">${b.name}</h2>
+        <div class="flex flex-wrap gap-1.5 mt-1.5">
+          <span class="chip cat-bim">${b.discipline}</span>
+          <span class="chip cat-unit">Unit: ${b.unit}</span>
+          <span class="chip cat-std">Geometry: ${b.geometry}</span>
+          ${statusBadge(b.status)}
+        </div>
+      </div>
+      <button onclick="closeModal()" class="text-ink-400 hover:text-ink-700"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="overflow-y-auto p-6 space-y-5" style="max-height:70vh">
+      <!-- Formula -->
+      <div class="bg-ink-50 rounded-lg p-3 border border-ink-200">
+        <div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-1">Quantity Formula</div>
+        <code class="font-mono text-brand-700 text-sm">${b.formula}</code>
+      </div>
+      <!-- Configurable properties -->
+      <div>
+        <div class="text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-2">Configurable Properties</div>
+        <div class="grid grid-cols-3 gap-2">
+          ${Object.entries(b.properties).map(([k,v]) => `
+            <div class="border border-ink-200 rounded-lg p-2">
+              <div class="text-[10px] text-ink-500">${k}</div>
+              <div class="text-sm font-mono text-ink-800">${v}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <!-- Relationships -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        ${renderRelationTable('Materials', 'package', b.materials, 'm', 'material', true)}
+        ${renderRelationTable('Activities', 'list-checks', b.activities, 'a', 'activity', false)}
+        ${renderRelationTable('Manpower', 'users', b.manpower, 'p', 'manpower', true)}
+        ${renderRelationTable('Equipment', 'truck', b.equipment, 'e', 'equipment', true)}
+        ${renderRelationTable('Temporary Works', 'construction', b.tempWorks, 'tw', 'tempwork', true)}
+        ${renderRelationTable('Consumables', 'droplets', b.consumables, 'c', 'consumable', true)}
+        ${renderRelationTable('Safety Hazards', 'shield-alert', b.safety, 'h', 'hazard', false)}
+        ${renderRelationTable('QC / ITP', 'badge-check', b.quality, 'q', 'qc', false, true)}
+        ${renderRelationTable('Testing', 'flask-conical', b.tests, 'ts', 'test', false)}
+        ${renderRelationTable('Standards', 'book-open', b.standards, 's', 'standard', false)}
+      </div>
+    </div>
+    <div class="px-6 py-3 border-t border-ink-200 flex justify-end gap-2 bg-ink-50">
+      <button onclick="closeModal()" class="px-4 py-1.5 text-sm border border-ink-200 rounded-lg text-ink-700 hover:bg-ink-100">Close</button>
+      <button onclick="navigateTo('relationships'); state.selectedBim='${b.id}'; closeModal();" class="px-4 py-1.5 text-sm bg-brand-600 text-white rounded-lg hover:bg-brand-700 flex items-center gap-1.5"><i data-lucide="share-2" class="w-3.5 h-3.5"></i> Open in Explorer</button>
+    </div>
+  `;
+  el('modal').classList.remove('hidden');
+  el('modal').classList.add('flex');
+  refreshIcons();
+};
+
+window.openActivityDetail = function(id) {
+  const a = lookups.activity[id];
+  if (!a) return;
+  const content = el('modalContent');
+  const linkedElements = (a.elements||[]).map(eid => lookups.bim[eid]).filter(Boolean);
+  const prereqs = (a.prerequisites||[]).map(pid => lookups.activity[pid]).filter(Boolean);
+  content.innerHTML = `
+    <div class="px-6 py-4 border-b border-ink-200 flex items-center justify-between">
+      <div>
+        <div class="font-mono text-xs text-ink-500">${a.code}</div>
+        <h2 class="font-display text-xl font-bold text-ink-900">${a.name}</h2>
+      </div>
+      <button onclick="closeModal()" class="text-ink-400 hover:text-ink-700"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="overflow-y-auto p-6 space-y-4" style="max-height:70vh">
+      <div class="grid grid-cols-2 gap-4">
+        <div><div class="field-label">Method Statement</div><div class="text-sm text-ink-800 mt-1">${a.method||'—'}</div></div>
+        <div><div class="field-label">Prerequisites</div><div class="mt-1 flex flex-wrap gap-1">${prereqs.length ? prereqs.map(p=>`<span class="chip cat-act">${p.code} · ${p.name}</span>`).join('') : '<span class="text-xs text-ink-400">None</span>'}</div></div>
+      </div>
+      <div>
+        <div class="field-label mb-2">Linked BIM Elements</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          ${linkedElements.length ? linkedElements.map(b => `
+            <div class="border border-ink-200 rounded-lg p-3 cursor-pointer hover:border-brand-300" onclick="closeModal(); openBimDetail('${b.id}')">
+              <div class="font-mono text-[10px] text-ink-500">${b.code}</div>
+              <div class="font-medium text-sm text-ink-800">${b.name}</div>
+              <div class="text-[11px] text-ink-500 mt-0.5">${b.discipline} · ${b.ifc}</div>
+            </div>
+          `).join('') : '<span class="text-xs text-ink-400">No elements linked</span>'}
+        </div>
+      </div>
+    </div>
+    <div class="px-6 py-3 border-t border-ink-200 flex justify-end bg-ink-50">
+      <button onclick="closeModal()" class="px-4 py-1.5 text-sm border border-ink-200 rounded-lg text-ink-700 hover:bg-ink-100">Close</button>
+    </div>
+  `;
+  el('modal').classList.remove('hidden');
+  el('modal').classList.add('flex');
+  refreshIcons();
+};
+
+window.closeModal = function() {
+  el('modal').classList.add('hidden');
+  el('modal').classList.remove('flex');
+};
+
+/* ----------------------- NAVIGATION ----------------------- */
+window.navigateTo = function(view) {
+  state.currentView = view;
+  const v = VIEWS[view] || { title: view, sub: '' };
+  el('pageTitle').textContent = v.title;
+  el('pageSubtitle').textContent = v.sub;
+  $$('.sidebar-link').forEach(l => l.classList.toggle('active', l.dataset.view === view));
+  render();
+  // Post-render hooks
+  if (view === 'relationships') setTimeout(renderRelationshipGraph, 50);
+  if (view === 'bim') attachBimFilters();
+  if (view === 'relationships') attachBimSelectListener();
+  refreshIcons();
+};
+
+function attachBimFilters() {
+  $$('#bimFilters .tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('#bimFilters .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const f = btn.dataset.filter;
+      const grid = el('bimGrid');
+      grid.innerHTML = (f==='all' ? BIM_ELEMENTS : BIM_ELEMENTS.filter(b=>b.discipline===f)).map(b => renderBimCard(b)).join('');
+      refreshIcons();
+    });
+  });
+}
+
+function attachBimSelectListener() {
+  const sel = el('bimSelect');
+  if (sel) sel.addEventListener('change', e => {
+    state.selectedBim = e.target.value;
+    render();
+    setTimeout(renderRelationshipGraph, 50);
+    refreshIcons();
+  });
+}
+
+/* ----------------------- RENDER ----------------------- */
+function render() {
+  const view = state.currentView;
+  const map = {
+    dashboard: viewDashboard,
+    relationships: viewRelationships,
+    bim: viewBim,
+    materials: viewMaterials,
+    manpower: viewManpower,
+    equipment: viewEquipment,
+    tools: viewTools,
+    tempworks: viewTempWorks,
+    activities: viewActivities,
+    safety: viewSafety,
+    quality: viewQuality,
+    testing: viewTesting,
+    standards: viewStandards,
+    approval: viewApproval,
+    ai: viewAI,
+    audit: viewAudit,
+  };
+  el('app').innerHTML = (map[view] || viewDashboard)();
+  refreshIcons();
+  el('app').scrollTo({top:0, behavior:'smooth'});
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ----------------------- INIT ----------------------- */
+function init() {
+  $$('.sidebar-link').forEach(link => {
+    link.addEventListener('click', e => { e.preventDefault(); navigateTo(link.dataset.view); });
+  });
+  el('menuBtn')?.addEventListener('click', () => el('sidebar').classList.toggle('hidden'));
+  el('globalSearch')?.addEventListener('input', e => {
+    const q = e.target.value.toLowerCase().trim();
+    if (q.length > 1) {
+      // Search across BIM, materials, activities
+      const bimHit = BIM_ELEMENTS.find(b => b.code.toLowerCase().includes(q) || b.name.toLowerCase().includes(q));
+      if (bimHit) { state.selectedBim = bimHit.id; navigateTo('relationships'); }
+    }
+  });
+  el('modal').addEventListener('click', e => { if (e.target === el('modal')) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  window.addEventListener('resize', () => { if (state.currentView === 'relationships') renderRelationshipGraph(); });
+  navigateTo('dashboard');
+}
+
+init();
+</script>
+</body>
+</html>

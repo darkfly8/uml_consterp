@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ConstMaster ERP — Unified Construction Management</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          display: ['Space Grotesk', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        colors: {
+          ink: { 50:'#f8fafc', 100:'#f1f5f9', 200:'#e2e8f0', 300:'#cbd5e1', 400:'#94a3b8', 500:'#64748b', 600:'#475569', 700:'#334155', 800:'#1e293b', 900:'#0f172a', 950:'#020617' },
+          brand: { 50:'#eef2ff', 100:'#e0e7ff', 200:'#c7d2fe', 300:'#a5b4fc', 400:'#818cf8', 500:'#6366f1', 600:'#4f46e5', 700:'#4338ca', 800:'#3730a3', 900:'#312e81', 950:'#1e1b4b' },
+          emerald: { 500:'#10b981', 600:'#059669', 700:'#047857' },
+          amber: { 500:'#f59e0b', 600:'#d97706' },
+          violet: { 500:'#8b5cf6', 600:'#7c3aed', 700:'#6d28d9' }
+        }
+      }
+    }
+  }
+</script>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --ink-1: #0f172a;
+    --ink-2: #475569;
+    --ink-3: #94a3b8;
+    --brand: #4f46e5;
+  }
+  html, body { background: var(--bg); color: var(--ink-1); font-family: 'Inter', sans-serif; }
+  * { -webkit-font-smoothing: antialiased; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  .nav-item { transition: all .15s ease; }
+  .nav-item:hover { background: rgba(255,255,255,.08); }
+  .nav-item.active { background: var(--brand); color: white; box-shadow: 0 4px 6px -1px rgba(79,70,229,.3); }
+  
+  .sub-tab { padding:10px 16px; font-size:13px; font-weight:500; color:#64748b; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
+  .sub-tab.active { color:#4f46e5; border-bottom-color:#4f46e5; }
+  .sub-tab:hover:not(.active) { color:#334155; background:#f8fafc; }
+
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05); }
+  .chip { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:600; }
+  
+  .badge-draft   { background:#fef3c7; color:#92400e; }
+  .badge-pending { background:#dbeafe; color:#1e40af; }
+  .badge-approved{ background:#dcfce7; color:#166534; }
+  .badge-rejected{ background:#fee2e2; color:#991b1b; }
+  .badge-critical{ background:#ef4444; color:#ffffff; }
+
+  table.data-table { border-collapse: collapse; width:100%; font-size:13px; }
+  table.data-table th { text-align:left; padding:12px; background:#f8fafc; color:#64748b; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.06em; border-bottom:1px solid var(--border); position:sticky; top:0; }
+  table.data-table td { padding:12px; border-bottom:1px solid #f1f5f9; color:#1e293b; }
+  table.data-table tr:hover td { background:#f8fafc; }
+
+  .field-label { font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:#64748b; font-weight:600; margin-bottom:4px; display:block; }
+  .input-field { width:100%; background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:8px 10px; font-size:13px; color:#0f172a; outline:none; transition: border .15s; }
+  .input-field:focus { border-color:#4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
+
+  .modal-backdrop { background:rgba(15,23,42,.55); backdrop-filter:blur(4px); }
+  .pulse-dot { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 0 rgba(34,197,94,.5); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)} 70%{box-shadow:0 0 0 10px rgba(34,197,94,0)} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} }
+
+  .gradient-text { background:linear-gradient(135deg,#4f46e5,#818cf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+</style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+  <!-- PRIMARY SIDEBAR -->
+  <aside class="w-60 bg-ink-900 text-ink-100 flex-shrink-0 flex flex-col fixed lg:relative h-full z-30 print:hidden">
+    <div class="px-5 py-4 flex items-center gap-3 border-b border-ink-800">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg">
+        <i data-lucide="boxes" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="font-display font-bold text-white text-lg leading-tight">ConstMaster</div>
+        <div class="text-[10px] text-ink-400 tracking-widest uppercase">Unified Construction ERP</div>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-1 text-sm" id="mainNav">
+      <a data-mod="dashboard" class="nav-item active flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink-200 cursor-pointer">
+        <i data-lucide="layout-grid" class="w-4 h-4"></i> ERP Dashboard
+      </a>
+      
+      <div class="px-3 pt-4 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Operational Modules</div>
+      
+      <a data-mod="p1" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink-200 cursor-pointer">
+        <i data-lucide="database" class="w-4 h-4"></i> Phase 1: Master Data
+      </a>
+      <a data-mod="p2" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink-200 cursor-pointer">
+        <i data-lucide="drafting-compass" class="w-4 h-4"></i> Phase 2: Drawings & BOQ
+      </a>
+      <a data-mod="p3" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink-200 cursor-pointer">
+        <i data-lucide="hard-hat" class="w-4 h-4"></i> Phase 3: Field Execution
+      </a>
+      <a data-mod="p4" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink-200 cursor-pointer">
+        <i data-lucide="landmark" class="w-4 h-4"></i> Phase 4: Commercial
+      </a>
+      
+      <div class="px-3 pt-4 pb-1 text-[10px] text-ink-500 uppercase tracking-widest font-semibold">Executive</div>
+      
+      <a data-mod="p5" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-ink-200 cursor-pointer">
+        <i data-lucide="briefcase" class="w-4 h-4"></i> Phase 5: Executive MIS
+      </a>
+    </nav>
+
+    <div class="border-t border-ink-800 p-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-brand-600 flex items-center justify-center font-semibold text-white text-sm">RW</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-white truncate">R. Wickramasinghe</div>
+          <div class="text-[10px] text-ink-400 flex items-center gap-1"><span class="pulse-dot"></span> Managing Director</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <div class="flex-1 flex flex-col h-full overflow-hidden">
+    
+    <!-- TOP HEADER -->
+    <header class="bg-white border-b border-ink-200 px-6 py-3 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center gap-4">
+        <div>
+          <h1 id="pageTitle" class="font-display text-lg font-semibold text-ink-900">ERP Dashboard</h1>
+          <p id="pageSubtitle" class="text-xs text-ink-500">Unified overview across all construction phases</p>
+        </div>
+      </div>
+      
+      <!-- Sub Navigation Tabs (Dynamic) -->
+      <div id="subNav" class="flex items-center gap-1 border-b border-ink-200 absolute left-0 right-0 top-[57px] bg-white px-6 pt-2 hidden overflow-x-auto"></div>
+
+      <div class="flex items-center gap-2">
+        <div class="relative hidden md:block">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink-400"></i>
+          <input placeholder="Search BOQ, Drawings, Materials..." class="w-64 bg-ink-50 text-sm pl-9 pr-3 py-2 rounded-lg outline-none border border-transparent focus:border-brand-400 text-ink-800" />
+        </div>
+        <button class="relative p-2 text-ink-600 hover:bg-ink-100 rounded-lg">
+          <i data-lucide="bell" class="w-5 h-5"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT CONTAINER -->
+    <main class="flex-1 overflow-y-auto p-6" id="app"></main>
+  </div>
+
+<!-- Modal -->
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col" id="modalContent"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden bg-ink-900 text-white px-4 py-3 rounded-lg shadow-xl text-sm flex items-center gap-2">
+  <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+  <span id="toastMsg">Done</span>
+</div>
+
+<script>
+/* =========================================================================
+   CONSTMASTER UNIFIED ERP
+   ========================================================================= */
+
+/* ----------------------- UNIFIED DATA MODEL ----------------------- */
+const P1_BIM = [
+  { id:'b1', code:'BIM-FND-001', name:'Bored Cast-in-situ Pile', unit:'m³', formula:'V = (π × D² / 4) × L', materials:['Cement 53G', 'Sand', '20mm Aggregate', 'TMT Bar 12mm'] }
+];
+
+const P2_BOQ = [
+  { id:'boq1', code:'03.01', desc:'Bored Cast-in-situ Pile (500mm dia)', unit:'m³', approvedQty:8.051, rate:18500, amount:148943, drawing:'STR-FND-001', bimRef:'b1' }
+];
+
+const P3_EXEC = [
+  { id:'e1', date:'2024-01-20', boqRef:'boq1', planned:1.325, executed:1.200, status:'Approved' },
+  { id:'e2', date:'2024-01-21', boqRef:'boq1', planned:1.325, executed:1.451, status:'Approved' }
+];
+
+const P4_FIN = [
+  { id:'f1', type:'Client RA Bill', period:'Jan 2024', gross:49043, net:46693, status:'Certified' },
+  { id:'f2', type:'Subcontractor Pay', period:'Jan 2024', gross:25000, net:25000, status:'Pending' }
+];
+
+const P5_KPI = {
+  portfolioValue: 28.5,
+  activeProjects: 4,
+  forecastMargin: 12.4,
+  criticalRisks: 2
+};
+
+
+/* ----------------------- STATE & ROUTER ----------------------- */
+const state = {
+  module: 'dashboard',
+  subView: null
+};
+
+const MODULES = {
+  dashboard: { title: 'ERP Dashboard', sub: 'Unified overview across all construction phases', subNav: [] },
+  p1: { 
+    title: 'Phase 1: Master Database', 
+    sub: 'BIM Elements, Materials, Activities & Safety norms', 
+    subNav: ['BIM Library', 'Materials', 'Activities'] 
+  },
+  p2: { 
+    title: 'Phase 2: Drawing & BOQ', 
+    sub: 'Project specific engineering and quantity takeoff', 
+    subNav: ['Drawings', 'BOQ Builder'] 
+  },
+  p3: { 
+    title: 'Phase 3: Field Execution', 
+    sub: 'Site progress, resources and safety', 
+    subNav: ['Daily Progress', 'Resources'] 
+  },
+  p4: { 
+    title: 'Phase 4: Commercial Control', 
+    sub: 'Billing, costs and subcontractor management', 
+    subNav: ['Client Billing', 'Cost Control'] 
+  },
+  p5: { 
+    title: 'Phase 5: Executive MIS', 
+    sub: 'Portfolio health and company analytics', 
+    subNav: ['Portfolio', 'AI Assistant'] 
+  }
+};
+
+/* ----------------------- HELPERS ----------------------- */
+function el(id) { return document.getElementById(id); }
+function $$(sel, ctx=document) { return [...ctx.querySelectorAll(sel)]; }
+
+function toast(msg) {
+  el('toastMsg').textContent = msg;
+  el('toast').classList.remove('hidden');
+  setTimeout(()=>el('toast').classList.add('hidden'), 2200);
+}
+
+function refreshIcons() { if (window.lucide) lucide.createIcons(); }
+
+/* ----------------------- VIEWS ----------------------- */
+
+function viewDashboard() {
+  return `
+    <div class="space-y-6">
+      <div class="card overflow-hidden relative">
+        <div class="absolute inset-0 bg-gradient-to-r from-brand-600 to-violet-600 opacity-95"></div>
+        <div class="relative p-8 text-white flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h2 class="font-display text-3xl font-bold">Welcome to ConstMaster ERP</h2>
+            <p class="text-sm text-brand-100 mt-2 max-w-2xl">The unified platform connecting your Master Data, Engineering, Field Execution, Commercial and Executive systems.</p>
+          </div>
+          <div class="flex gap-8 items-center text-right">
+            <div>
+              <div class="text-4xl font-bold">${P5_KPI.portfolioValue}M</div>
+              <div class="text-xs text-brand-100 uppercase tracking-wider">Portfolio Value</div>
+            </div>
+            <div>
+              <div class="text-4xl font-bold">${P5_KPI.activeProjects}</div>
+              <div class="text-xs text-brand-100 uppercase tracking-wider">Active Projects</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        ${[
+          { mod:'p1', icon:'database', color:'bg-blue-50 text-blue-600', label:'Master BIM Elements', val:1, sub:'BIM-FND-001' },
+          { mod:'p2', icon:'drafting-compass', color:'bg-emerald-50 text-emerald-600', label:'BOQ Items', val:1, sub:'Total Value: 148,943' },
+          { mod:'p3', icon:'hard-hat', color:'bg-amber-50 text-amber-600', label:'Execution Logs', val:2, sub:'Approved: 2.651 m³' },
+          { mod:'p4', icon:'landmark', color:'bg-violet-50 text-violet-600', label:'Net Cash Flow', val:'+21.6K, sub:'Net: +21,693' },
+        ].map(c => `
+          <div class="card p-5 hover:border-brand-300 transition-colors cursor-pointer" onclick="navigateTo('${c.mod}')">
+            <div class="flex items-center justify-between mb-3">
+              <div class="w-10 h-10 rounded-lg ${c.color} flex items-center justify-center"><i data-lucide="${c.icon}" class="w-5 h-5"></i></div>
+              <i data-lucide="arrow-up-right" class="w-4 h-4 text-ink-300"></i>
+            </div>
+            <div class="font-display text-2xl font-bold text-ink-900">${c.val}</div>
+            <div class="text-xs text-ink-500 mt-1">${c.label}</div>
+            <div class="text-[10px] text-ink-400 mt-1 font-mono">${c.sub}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="card p-6">
+        <h3 class="font-display text-lg font-semibold text-ink-900 mb-4">Integrated Data Lifecycle: Bored Pile</h3>
+        <p class="text-sm text-ink-500 mb-6">Traceability from Phase 1 Master Definition to Phase 4 Commercial Billing</p>
+        <div class="flex items-center justify-between overflow-x-auto pb-2">
+          ${[
+            { phase:'P1 Master', title:'BIM-FND-001', desc:'Bored Pile Element', color:'bg-blue-100 text-blue-800 border-blue-200' },
+            { phase:'P2 BOQ', title:'03.01', desc:'8.051 m³ Approved', color:'bg-emerald-100 text-emerald-800 border-emerald-200' },
+            { phase:'P3 Execution', title:'2.651 m³', desc:'Field Progress', color:'bg-amber-100 text-amber-800 border-amber-200' },
+            { phase:'P4 Commercial', title:'49,043 BDT', desc:'Client RA Bill', color:'bg-violet-100 text-violet-800 border-violet-200' },
+          ].map((step, i, arr) => `
+            <div class="flex items-center flex-shrink-0">
+              <div class="w-48 p-4 rounded-xl border ${step.color}">
+                <div class="text-[10px] font-bold uppercase tracking-wider opacity-70">${step.phase}</div>
+                <div class="font-display text-lg font-bold mt-1">${step.title}</div>
+                <div class="text-xs mt-1 opacity-80">${step.desc}</div>
+              </div>
+              ${i < arr.length - 1 ? `<i data-lucide="chevron-right" class="w-6 h-6 text-ink-300 mx-2"></i>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* --- PHASE 1 VIEWS --- */
+function viewP1(view) {
+  if (view === 'Materials') return `<div class="card p-6"><h3 class="font-semibold">Materials Catalogue</h3><p class="text-sm text-ink-500 mt-2">OPC Cement 53 Grade, Sand, 20mm Aggregate...</p></div>`;
+  if (view === 'Activities') return `<div class="card p-6"><h3 class="font-semibold">Construction Activities</h3><p class="text-sm text-ink-500 mt-2">Bored Pile Installation, Excavation...</p></div>`;
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex justify-between items-center">
+        <div><h3 class="font-semibold text-ink-800">BIM Element Library</h3><p class="text-xs text-ink-500">Phase 1 Master Data</p></div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg flex items-center gap-1.5" onclick="toast('Opening Master Form')"><i data-lucide="plus" class="w-3.5 h-3.5"></i> New BIM Element</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Code</th><th>Name</th><th>Unit</th><th>Formula</th><th>Linked Materials</th><th>Action</th></tr></thead>
+        <tbody>
+          ${P1_BIM.map(b => `
+            <tr>
+              <td class="font-mono text-xs text-brand-700">${b.code}</td>
+              <td class="font-medium text-ink-800">${b.name}</td>
+              <td><span class="chip bg-ink-100 text-ink-700">${b.unit}</span></td>
+              <td class="font-mono text-xs text-ink-600">${b.formula}</td>
+              <td class="text-xs text-ink-500">${b.materials.join(', ')}</td>
+              <td><button class="text-xs text-brand-600 hover:underline" onclick="openBimModal('${b.id}')">View</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* --- PHASE 2 VIEWS --- */
+function viewP2(view) {
+  if (view === 'Drawings') return `<div class="card p-6"><h3 class="font-semibold">Drawing Register</h3><div class="mt-4 p-4 border border-ink-200 rounded-lg flex items-center gap-3"><i data-lucide="file-image" class="w-8 h-8 text-emerald-600"></i><div><div class="font-medium">STR-FND-001 Rev B</div><div class="text-xs text-ink-500">Pile Layout - Traders Building</div></div></div></div>`;
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex justify-between items-center">
+        <div><h3 class="font-semibold text-ink-800">Bill of Quantities (BOQ)</h3><p class="text-xs text-ink-500">Phase 2 Engineering Output</p></div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg flex items-center gap-1.5" onclick="toast('BOQ Exported')"><i data-lucide="download" class="w-3.5 h-3.5"></i> Export BOQ</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>BOQ No.</th><th>Description</th><th>Unit</th><th>Qty</th><th>Rate</th><th>Amount</th><th>Source</th></tr></thead>
+        <tbody>
+          ${P2_BOQ.map(b => `
+            <tr>
+              <td class="font-mono text-xs text-brand-700">${b.code}</td>
+              <td class="font-medium text-ink-800">${b.desc}</td>
+              <td><span class="chip bg-ink-100 text-ink-700">${b.unit}</span></td>
+              <td class="font-mono">${b.approvedQty}</td>
+              <td class="font-mono">${b.rate.toLocaleString()}</td>
+              <td class="font-mono font-semibold text-emerald-700">${b.amount.toLocaleString()}</td>
+              <td><span class="chip bg-blue-50 text-blue-700">P1: ${b.bimRef}</span></td>
+            </tr>
+          `).join('')}
+          <tr class="bg-ink-50 font-bold"><td colspan="5" class="text-right">Total</td><td class="font-mono text-brand-700">148,943</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* --- PHASE 3 VIEWS --- */
+function viewP3(view) {
+  if (view === 'Resources') return `<div class="card p-6"><h3 class="font-semibold">Resource Requisitions</h3><p class="text-sm text-ink-500 mt-2">Cement, Excavator, Bar Bender...</p></div>`;
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex justify-between items-center">
+        <div><h3 class="font-semibold text-ink-800">Daily Execution Logs</h3><p class="text-xs text-ink-500">Phase 3 Field Execution</p></div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg flex items-center gap-1.5" onclick="toast('Progress submitted')"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Log Daily Work</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Date</th><th>BOQ Ref</th><th>Planned</th><th>Executed</th><th>Balance</th><th>Status</th></tr></thead>
+        <tbody>
+          ${P3_EXEC.map(e => {
+            const boq = P2_BOQ.find(b=>b.id===e.boqRef);
+            const balance = boq.approvedQty - e.executed;
+            return `
+              <tr>
+                <td class="text-xs font-mono">${e.date}</td>
+                <td class="font-mono text-xs text-brand-700">${boq.code}</td>
+                <td class="font-mono">${e.planned} m³</td>
+                <td class="font-mono font-semibold text-emerald-600">${e.executed} m³</td>
+                <td class="font-mono text-amber-600">${balance.toFixed(3)} m³</td>
+                <td><span class="chip badge-approved">${e.status}</span></td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* --- PHASE 4 VIEWS --- */
+function viewP4(view) {
+  if (view === 'Cost Control') return `<div class="card p-6"><h3 class="font-semibold">Cost Control</h3><p class="text-sm text-ink-500 mt-2">Budget vs Actuals vs Forecast...</p></div>`;
+  return `
+    <div class="card overflow-hidden">
+      <div class="px-4 py-3 border-b border-ink-200 flex justify-between items-center">
+        <div><h3 class="font-semibold text-ink-800">Commercial Transactions</h3><p class="text-xs text-ink-500">Phase 4 Billing & Payments</p></div>
+        <button class="px-3 py-1.5 text-xs font-medium bg-brand-600 text-white rounded-lg flex items-center gap-1.5" onclick="toast('Invoice generated')"><i data-lucide="file-plus" class="w-3.5 h-3.5"></i> Generate RA Bill</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Type</th><th>Period</th><th>Gross (BDT)</th><th>Net (BDT)</th><th>Status</th></tr></thead>
+        <tbody>
+          ${P4_FIN.map(f => `
+            <tr>
+              <td class="font-medium text-ink-800">${f.type}</td>
+              <td class="text-xs font-mono">${f.period}</td>
+              <td class="font-mono">${f.gross.toLocaleString()}</td>
+              <td class="font-mono font-semibold ${f.type.includes('Client') ? 'text-emerald-600' : 'text-red-600'}">${f.type.includes('Client') ? '+' : '-'} ${f.net.toLocaleString()}</td>
+              <td><span class="chip ${f.status==='Certified'?'badge-approved':'badge-pending'}">${f.status}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+/* --- PHASE 5 VIEWS --- */
+function viewP5(view) {
+  if (view === 'AI Assistant') return `
+    <div class="card p-6 max-w-3xl">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center"><i data-lucide="sparkles" class="w-6 h-6 text-white"></i></div>
+        <div><h3 class="font-semibold text-ink-800">Executive AI Assistant</h3><p class="text-xs text-ink-500">Powered by verified Phase 1-4 data</p></div>
+      </div>
+      <div class="space-y-4">
+        <div class="flex gap-3">
+          <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center"><i data-lucide="user" class="w-4 h-4 text-brand-600"></i></div>
+          <div class="bg-brand-600 text-white rounded-lg p-3 max-w-md text-sm">What is our current cash position?</div>
+        </div>
+        <div class="flex gap-3 justify-end">
+          <div class="bg-ink-100 rounded-lg p-3 max-w-md text-sm text-ink-800">Based on Phase 4 Commercial data, the net cash position is positive at <strong>+21,693 BDT</strong>. Client RA Bill RA-01 is certified, while Subcontractor payment is pending.</div>
+          <div class="w-8 h-8 rounded-full bg-violet-500 flex items-center justify-center"><i data-lucide="cpu" class="w-4 h-4 text-white"></i></div>
+        </div>
+      </div>
+      <div class="mt-6 flex gap-2 border-t border-ink-200 pt-4">
+        <input type="text" placeholder="Ask a question..." class="input-field flex-1" />
+        <button class="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium" onclick="toast('Query sent')">Send</button>
+      </div>
+    </div>
+  `;
+  
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="card p-4 border-l-4 border-brand-600"><div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Portfolio Value</div><div class="font-display text-xl font-bold text-ink-900">${P5_KPI.portfolioValue}M</div></div>
+      <div class="card p-4 border-l-4 border-emerald-500"><div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Active Projects</div><div class="font-display text-xl font-bold text-ink-900">${P5_KPI.activeProjects}</div></div>
+      <div class="card p-4 border-l-4 border-violet-500"><div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Forecast Margin</div><div class="font-display text-xl font-bold text-ink-900">${P5_KPI.forecastMargin}%</div></div>
+      <div class="card p-4 border-l-4 border-red-500"><div class="text-xs text-ink-500 uppercase tracking-wider mb-1">Critical Risks</div><div class="font-display text-xl font-bold text-ink-900">${P5_KPI.criticalRisks}</div></div>
+    </div>
+    <div class="card p-5">
+      <h3 class="font-semibold text-ink-800 mb-4">Project Portfolio Health</h3>
+      <div class="space-y-4">
+        ${[
+          { name:'Fish Landing Centre', progress:45, health:'Healthy', color:'bg-emerald-500', chip:'badge-approved' },
+          { name:'Marina Heights Tower', progress:78, health:'At Risk', color:'bg-amber-500', chip:'badge-pending' },
+          { name:'Highway N4 Expansion', progress:62, health:'Critical', color:'bg-red-500', chip:'badge-critical' },
+        ].map(p => `
+          <div class="flex items-center gap-4 p-3 border border-ink-200 rounded-lg">
+            <div class="flex-1">
+              <div class="flex justify-between mb-1"><span class="font-medium text-ink-800 text-sm">${p.name}</span><span class="text-xs text-ink-500">${p.progress}%</span></div>
+              <div class="w-full h-1.5 bg-ink-100 rounded-full overflow-hidden"><div class="${p.color} h-full" style="width:${p.progress}%"></div></div>
+            </div>
+            <span class="chip ${p.chip}">${p.health}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ----------------------- MODAL ----------------------- */
+function openBimModal(id) {
+  const b = P1_BIM.find(x=>x.id===id);
+  el('modalContent').innerHTML = `
+    <div class="px-6 py-4 border-b border-ink-200 flex justify-between items-center">
+      <div><div class="font-mono text-xs text-ink-500">${b.code}</div><h2 class="font-display text-xl font-bold text-ink-900">${b.name}</h2></div>
+      <button onclick="closeModal()" class="text-ink-400 hover:text-ink-700"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div class="grid grid-cols-3 gap-4">
+        <div><div class="field-label">Unit</div><div class="text-sm font-mono">${b.unit}</div></div>
+        <div><div class="field-label">Formula</div><div class="text-sm font-mono text-brand-600">${b.formula}</div></div>
+        <div><div class="field-label">Status</div><span class="chip badge-approved">Approved</span></div>
+      </div>
+      <div>
+        <div class="field-label">Linked Materials</div>
+        <div class="flex flex-wrap gap-2 mt-1">
+          ${b.materials.map(m => `<span class="chip bg-blue-50 text-blue-700">${m}</span>`).join('')}
+        </div>
+      </div>
+      <div class="bg-ink-50 p-4 rounded-lg text-xs text-ink-600 border border-ink-200">
+        <i data-lucide="info" class="w-4 h-4 inline-block mr-1"></i> 
+        This master element is consumed by Phase 2 (BOQ) and Phase 3 (Execution) via API references.
+      </div>
+    </div>
+    <div class="px-6 py-3 bg-ink-50 border-t flex justify-end"><button onclick="closeModal()" class="px-4 py-2 text-sm border border-ink-200 rounded-lg hover:bg-ink-100">Close</button></div>
+  `;
+  el('modal').classList.remove('hidden');
+  el('modal').classList.add('flex');
+  refreshIcons();
+}
+window.closeModal = function() { el('modal').classList.add('hidden'); el('modal').classList.remove('flex'); };
+
+/* ----------------------- ROUTER & RENDER ----------------------- */
+function navigateTo(mod, subView = null) {
+  state.module = mod;
+  state.subView = subView || MODULES[mod].subNav[0];
+  
+  // Update Active Nav
+  $$('#mainNav .nav-item').forEach(n => n.classList.toggle('active', n.dataset.mod === mod));
+  
+  // Update Header
+  const m = MODULES[mod];
+  el('pageTitle').textContent = m.title;
+  el('pageSubtitle').textContent = m.sub;
+  
+  // Update Sub Nav
+  const subNav = el('subNav');
+  if (m.subNav.length > 0) {
+    subNav.classList.remove('hidden');
+    subNav.innerHTML = m.subNav.map(tab => `
+      <div class="sub-tab ${tab === state.subView ? 'active' : ''}" data-tab="${tab}">${tab}</div>
+    `).join('');
+    
+    // Attach listeners
+    $$('#subNav .sub-tab').forEach(t => {
+      t.addEventListener('click', () => navigateTo(mod, t.dataset.tab));
+    });
+  } else {
+    subNav.classList.add('hidden');
+  }
+  
+  // Add padding to main if subnav is visible
+  el('app').style.paddingTop = m.subNav.length > 0 ? '40px' : '24px';
+
+  renderMain();
+  refreshIcons();
+}
+
+function renderMain() {
+  const { module, subView } = state;
+  let html = '';
+  
+  if (module === 'dashboard') html = viewDashboard();
+  else if (module === 'p1') html = viewP1(subView);
+  else if (module === 'p2') html = viewP2(subView);
+  else if (module === 'p3') html = viewP3(subView);
+  else if (module === 'p4') html = viewP4(subView);
+  else if (module === 'p5') html = viewP5(subView);
+  
+  el('app').innerHTML = html;
+}
+
+/* ----------------------- INIT ----------------------- */
+function init() {
+  $$('#mainNav .nav-item').forEach(item => {
+    item.addEventListener('click', e => { e.preventDefault(); navigateTo(item.dataset.mod); });
+  });
+  el('modal').addEventListener('click', e => { if (e.target === el('modal')) closeModal(); });
+  navigateTo('dashboard');
+}
+
+init();
+</script>
+</body>
+</html>
